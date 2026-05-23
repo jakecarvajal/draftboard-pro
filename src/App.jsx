@@ -1,16 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef, useReducer } from "react";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CLERK AUTH — imported conditionally so the app still works without Clerk
-// ─────────────────────────────────────────────────────────────────────────────
-let useUser, SignIn, UserButton;
-try {
-  ({ useUser, SignIn, UserButton } = await import("@clerk/clerk-react"));
-} catch {
-  useUser = () => ({ isSignedIn: true, user: { id: "local" } });
-  SignIn = () => null;
-  UserButton = () => null;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LIVE DATA — fetched from Google Sheets via SheetDB
@@ -1003,11 +992,7 @@ function TopNav({view,onNav,watchlistCount,unreadAlerts,onCmd,settings,UserButto
 // ROOT APP
 // ─────────────────────────────────────────────────────────────────────────────
 export default function App() {
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  const clerkAvailable = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  const authHook = clerkAvailable ? useUser() : { isSignedIn: true, user: { id: "local" } };
-  const { isSignedIn, user } = authHook;
-  const userId = user?.id || "local";
+  const userId = "local";
 
   // ── Live data fetch ────────────────────────────────────────────────────────
   const [players, setPlayers]     = useState([]);
@@ -1068,17 +1053,7 @@ export default function App() {
     setCompareIds(ids => ids.includes(id) ? ids.filter(x=>x!==id) : ids.length<4 ? [...ids,id] : ids);
   };
 
-  // ── Auth gate ──────────────────────────────────────────────────────────────
-  if (clerkAvailable && !isSignedIn) {
-    return (
-      <div style={{minHeight:"100vh",background:"#0c111b",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:24}}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet"/>
-        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:36,letterSpacing:3,color:"#f6ad55"}}>DRAFTBOARD PRO</div>
-        <div style={{fontSize:13,color:"#4a5568"}}>Sign in to access recruiting analytics</div>
-        {SignIn && <SignIn/>}
-      </div>
-    );
-  }
+
 
   // ── Loading / error states ─────────────────────────────────────────────────
   if (dataLoading) return (
@@ -1117,7 +1092,7 @@ export default function App() {
         input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#f6ad55;cursor:pointer}
       `}</style>
 
-      <TopNav view={view} onNav={setView} watchlistCount={watchlist.length} unreadAlerts={unreadAlerts} onCmd={()=>setCmdOpen(true)} settings={settings} UserButtonComponent={clerkAvailable?UserButton:null}/>
+      <TopNav view={view} onNav={setView} watchlistCount={watchlist.length} unreadAlerts={unreadAlerts} onCmd={()=>setCmdOpen(true)} settings={settings} UserButtonComponent={null}/>
 
       <main style={{display:"flex",flex:1,overflow:"hidden",position:"relative"}}>
         {view==="home"       && <HomeView players={players} watchlist={watchlist} alerts={ALERTS} onNav={setView} onSelect={id=>{setSelected(id);setView("board");}}/>}
