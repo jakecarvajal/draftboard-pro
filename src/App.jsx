@@ -6,7 +6,7 @@ import { useState, useMemo, useCallback, useEffect, useRef, useReducer } from "r
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP: Replace the URL below with your actual SheetDB endpoint
 // Example: "https://sheetdb.io/api/v1/abc123def456"
-const SHEETDB_URL = "https://sheetdb.io/api/v1/REPLACE_WITH_YOUR_ID";
+const SHEETDB_URL = "https://sheetdb.io/api/v1/https://sheetdb.io/api/v1/gfe1gq37xjmxy";
 
 function parsePlayer(row) {
   const bool = (v) => v === "TRUE" || v === "true" || v === "1";
