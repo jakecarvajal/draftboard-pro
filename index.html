@@ -29,154 +29,88 @@ const { useState, useMemo, useCallback, useEffect, useRef } = React;
 const SHEETDB_URL = "https://sheetdb.io/api/v1/gfe1gq37xjmxy";
 
 const CONF_TARGETS = {
-  // ── ORIGINAL 11 TARGET CONFERENCES — DO NOT MODIFY ───────────────────────
-  "C-USA":     { opsMult:0.828, eraMult:1.18, label:"Conference USA" },
-  "Sun Belt":  { opsMult:0.841, eraMult:1.15, label:"Sun Belt" },
-  "MWC":       { opsMult:0.812, eraMult:1.22, label:"Mountain West" },
-  "MAC":       { opsMult:0.835, eraMult:1.16, label:"Mid-American" },
-  "Big West":  { opsMult:0.820, eraMult:1.20, label:"Big West" },
-  "WAC":       { opsMult:0.844, eraMult:1.14, label:"WAC" },
-  "SEC":       { opsMult:0.768, eraMult:1.38, label:"SEC" },
-  "Big 12":    { opsMult:0.779, eraMult:1.34, label:"Big 12" },
-  "ACC":       { opsMult:0.774, eraMult:1.36, label:"ACC" },
-  "Pac-12":    { opsMult:0.782, eraMult:1.32, label:"Pac-12" },
-  "Big Ten":   { opsMult:0.788, eraMult:1.30, label:"Big Ten" },
-
-  // ── HIGH MID-MAJOR (0.800–0.820 OPS mult, 1.22–1.28 ERA mult) ────────────
-  // AAC: American Athletic — UConn, ECU, Houston, Tulane, South Florida area
-  "AAC":       { opsMult:0.808, eraMult:1.26, label:"American Athletic" },
-  // A-10: Atlantic 10 — VCU, Fordham, St. Joe's, La Salle, Dayton area
-  "A-10":      { opsMult:0.814, eraMult:1.24, label:"Atlantic 10" },
-  // WCC: West Coast Conference — Gonzaga, Santa Clara, BYU, LMU
-  "WCC":       { opsMult:0.810, eraMult:1.25, label:"West Coast Conference" },
-
-  // ── MID-MAJOR (0.820–0.845 OPS mult, 1.14–1.22 ERA mult) ─────────────────
-  // ASUN: Atlantic Sun — Liberty, Kennesaw State, Jacksonville, Florida Gulf Coast
-  "ASUN":      { opsMult:0.836, eraMult:1.16, label:"ASUN Conference" },
-  // SoCon: Southern Conference — Furman, Samford, Mercer, Western Carolina
-  "SoCon":     { opsMult:0.838, eraMult:1.15, label:"Southern Conference" },
-  // MVC: Missouri Valley — Dallas Baptist, Illinois State, Indiana State, Bradley
-  "MVC":       { opsMult:0.832, eraMult:1.17, label:"Missouri Valley Conference" },
-  // CAA: Colonial Athletic — Hofstra, William & Mary, Delaware, UNC Wilmington
-  "CAA":       { opsMult:0.840, eraMult:1.15, label:"Colonial Athletic Association" },
-  // Big South: Presbyterian, Campbell, High Point, Gardner-Webb
-  "Big South":  { opsMult:0.843, eraMult:1.14, label:"Big South Conference" },
-
-  // ── LOW MID-MAJOR (0.845–0.868 OPS mult, 1.08–1.14 ERA mult) ────────────
-  // Southland: Sam Houston, UIW, Lamar, Southeastern Louisiana
+  // ── ORIGINAL 11 ──────────────────────────────────────────────────────────
+  "C-USA":      { opsMult:0.828, eraMult:1.18, label:"Conference USA" },
+  "Sun Belt":   { opsMult:0.841, eraMult:1.15, label:"Sun Belt" },
+  "MWC":        { opsMult:0.812, eraMult:1.22, label:"Mountain West" },
+  "MAC":        { opsMult:0.835, eraMult:1.16, label:"Mid-American" },
+  "Big West":   { opsMult:0.820, eraMult:1.20, label:"Big West" },
+  "WAC":        { opsMult:0.844, eraMult:1.14, label:"WAC" },
+  "SEC":        { opsMult:0.768, eraMult:1.38, label:"SEC" },
+  "Big 12":     { opsMult:0.779, eraMult:1.34, label:"Big 12" },
+  "ACC":        { opsMult:0.774, eraMult:1.36, label:"ACC" },
+  "Pac-12":     { opsMult:0.782, eraMult:1.32, label:"Pac-12" },
+  "Big Ten":    { opsMult:0.788, eraMult:1.30, label:"Big Ten" },
+  // ── HIGH MID-MAJOR ────────────────────────────────────────────────────────
+  "AAC":        { opsMult:0.808, eraMult:1.26, label:"American Athletic" },
+  "A-10":       { opsMult:0.814, eraMult:1.24, label:"Atlantic 10" },
+  "WCC":        { opsMult:0.810, eraMult:1.25, label:"West Coast Conference" },
+  // ── MID-MAJOR ─────────────────────────────────────────────────────────────
+  "ASUN":       { opsMult:0.836, eraMult:1.16, label:"ASUN Conference" },
+  "SoCon":      { opsMult:0.838, eraMult:1.15, label:"Southern Conference" },
+  "MVC":        { opsMult:0.832, eraMult:1.17, label:"Missouri Valley" },
+  "CAA":        { opsMult:0.840, eraMult:1.15, label:"Colonial Athletic" },
+  "Big South":  { opsMult:0.843, eraMult:1.14, label:"Big South" },
+  // ── LOW MID-MAJOR ─────────────────────────────────────────────────────────
   "Southland":  { opsMult:0.848, eraMult:1.12, label:"Southland Conference" },
-  // OVC: Ohio Valley — Austin Peay, Morehead State, Tennessee Tech, UT Martin
   "OVC":        { opsMult:0.852, eraMult:1.11, label:"Ohio Valley Conference" },
-  // Horizon League: Wright State, Northern Kentucky, Oakland, Youngstown State
   "Horizon":    { opsMult:0.855, eraMult:1.10, label:"Horizon League" },
-  // America East: Maine, Hartford, Binghamton, Albany, Maryland-Baltimore County
-  "America East": { opsMult:0.858, eraMult:1.10, label:"America East" },
-  // Summit League: Oral Roberts, South Dakota State, North Dakota State, Western Illinois
+  "America East":{ opsMult:0.858, eraMult:1.10, label:"America East" },
   "Summit":     { opsMult:0.860, eraMult:1.09, label:"Summit League" },
-
-  // ── HIGH-MAJOR SMALL (0.868–0.888 OPS mult, 1.04–1.08 ERA mult) ──────────
-  // Ivy League: Princeton, Yale, Columbia, Harvard, Cornell, Dartmouth, Penn, Brown
+  // ── SMALLER / HIGH-MAJOR ──────────────────────────────────────────────────
   "Ivy":        { opsMult:0.870, eraMult:1.07, label:"Ivy League" },
-  // Patriot League: Army, Navy, Bucknell, Holy Cross, Lehigh, Lafayette
   "Patriot":    { opsMult:0.874, eraMult:1.06, label:"Patriot League" },
-  // MAAC: Metro Atlantic Athletic — Rider, Fairfield, Siena, Manhattan, Canisius
   "MAAC":       { opsMult:0.876, eraMult:1.06, label:"Metro Atlantic Athletic" },
-  // NEC: Northeast Conference — Bryant, Central Connecticut, LIU, Merrimack, Sacred Heart
   "NEC":        { opsMult:0.878, eraMult:1.05, label:"Northeast Conference" },
-  // MVC (big east overlap): Big East baseball-only schools
   "Big East":   { opsMult:0.872, eraMult:1.07, label:"Big East" },
-
-  // ── SMALLER D1 (0.888–0.920 OPS mult, 1.00–1.04 ERA mult) ───────────────
-  // SWAC: Southwestern Athletic Conference (HBCU) — Grambling, Southern, Jackson State
   "SWAC":       { opsMult:0.894, eraMult:1.02, label:"Southwestern Athletic (SWAC)" },
-  // MEAC: Mid-Eastern Athletic (HBCU) — Norfolk State, Coppin State, Delaware State
   "MEAC":       { opsMult:0.898, eraMult:1.01, label:"Mid-Eastern Athletic (MEAC)" },
-  // DI Independent: catch-all for independent D1 programs with baseball
   "DI Ind":     { opsMult:0.838, eraMult:1.15, label:"D1 Independent" },
 };
 
-
 const CONF_SOURCE = {
-  // ── ORIGINAL 5 SEED CONFERENCES — DO NOT MODIFY ──────────────────────────
-  "ACCAC":     { rating:0.90, transfers:142, d1Rate:68 },
-  "NJCAA R14": { rating:0.88, transfers:118, d1Rate:64 },
-  "GCAC":      { rating:0.84, transfers:97,  d1Rate:59 },
-  "MCCAA":     { rating:0.79, transfers:63,  d1Rate:51 },
-  "NJCAA R1":  { rating:0.81, transfers:88,  d1Rate:55 },
-
+  // ── ORIGINAL 5 SEED CONFERENCES ──────────────────────────────────────────
+  "ACCAC":       { rating:0.90, transfers:142, d1Rate:68 },
+  "NJCAA R14":   { rating:0.88, transfers:118, d1Rate:64 },
+  "GCAC":        { rating:0.84, transfers:97,  d1Rate:59 },
+  "MCCAA":       { rating:0.79, transfers:63,  d1Rate:51 },
+  "NJCAA R1":    { rating:0.81, transfers:88,  d1Rate:55 },
   // ── NJCAA REGIONAL CONFERENCES ───────────────────────────────────────────
-  // R2: Mid-Atlantic (MD, PA, NJ, DE, VA) — solid Northeast corridor programs
-  "NJCAA R2":  { rating:0.80, transfers:72,  d1Rate:52 },
-  // R3: New England (CT, MA, ME, NH, RI, VT) — limited baseball climate/depth
-  "NJCAA R3":  { rating:0.74, transfers:38,  d1Rate:44 },
-  // R4: Southeast (SC, NC, GA) — strong recruiting geography, mid-tier competition
-  "NJCAA R4":  { rating:0.82, transfers:84,  d1Rate:57 },
-  // R5: South Central (AR, LA, MS) — productive feeder region, quality programs
-  "NJCAA R5":  { rating:0.81, transfers:76,  d1Rate:55 },
-  // R6: Great Plains (KS) — historically elite: Butler, Hutchinson, Seward County
-  "NJCAA R6":  { rating:0.86, transfers:94,  d1Rate:62 },
-  // R7: Midwest (IL, IN, OH) — large population base, average competition quality
-  "NJCAA R7":  { rating:0.76, transfers:81,  d1Rate:49 },
-  // R8: Upper Midwest (MN, WI, ND, SD, NE, IA) — cold climate limits development
-  "NJCAA R8":  { rating:0.70, transfers:44,  d1Rate:42 },
-  // R9: Rocky Mountain (CO, WY, UT, NM, MT, ID) — altitude/climate mixed impact
-  "NJCAA R9":  { rating:0.73, transfers:52,  d1Rate:46 },
-  // R10: Pacific (CA, NV, HI, OR, WA, AK) — overlaps CCCAA/NWAC, use for NJCAA members only
-  "NJCAA R10": { rating:0.80, transfers:48,  d1Rate:52 },
-  // R11: Tennessee/Southeast border (TN, KY) — Walters State, Motlow, solid programs
-  "NJCAA R11": { rating:0.78, transfers:61,  d1Rate:50 },
-  // R12: Alabama/Mississippi — UAB feeders, decent competition
-  "NJCAA R12": { rating:0.77, transfers:58,  d1Rate:49 },
-  // R13: Oklahoma/Arkansas — strong recruiting territory, mid-tier competition
-  "NJCAA R13": { rating:0.80, transfers:67,  d1Rate:53 },
-  // R15: Southwest Texas/NM border — semi-arid talent belt, solid D1 feeders
-  "NJCAA R15": { rating:0.83, transfers:71,  d1Rate:57 },
-  // R16: Pacific Northwest (OR, WA) — NJCAA members distinct from NWAC
-  "NJCAA R16": { rating:0.78, transfers:34,  d1Rate:48 },
-  // R17: Southwest AZ expansion (non-ACCAC AZ schools) — slightly below ACCAC tier
-  "NJCAA R17": { rating:0.85, transfers:58,  d1Rate:60 },
-  // R18: Gulf South (AL, MS border) — warm weather, modest competition depth
-  "NJCAA R18": { rating:0.76, transfers:46,  d1Rate:48 },
-  // R19: Mid-South (TN, MS, AL border) — overlapping warm-weather region
-  "NJCAA R19": { rating:0.77, transfers:53,  d1Rate:49 },
-  // R20: Florida South (Miami-Dade, Broward, Palm Beach) — elite talent density
-  "NJCAA R20": { rating:0.86, transfers:88,  d1Rate:61 },
-  // R21: Florida Central (Orlando, Tampa) — strong talent pool
-  "NJCAA R21": { rating:0.84, transfers:74,  d1Rate:58 },
-  // R22: Florida North (Jacksonville, Gainesville) — good talent, GCAC-adjacent
-  "NJCAA R22": { rating:0.83, transfers:62,  d1Rate:57 },
-  // R23: New York Upstate (Monroe, Onondaga, Erie) — same as NJCAA R1 core
-  "NJCAA R23": { rating:0.81, transfers:86,  d1Rate:55 },
-  // R24: New York Long Island (Suffolk, Nassau) — high population, solid programs
-  "NJCAA R24": { rating:0.80, transfers:54,  d1Rate:52 },
-
+  "NJCAA R2":    { rating:0.80, transfers:72,  d1Rate:52 },
+  "NJCAA R3":    { rating:0.74, transfers:38,  d1Rate:44 },
+  "NJCAA R4":    { rating:0.82, transfers:84,  d1Rate:57 },
+  "NJCAA R5":    { rating:0.81, transfers:76,  d1Rate:55 },
+  "NJCAA R6":    { rating:0.86, transfers:94,  d1Rate:62 },
+  "NJCAA R7":    { rating:0.76, transfers:81,  d1Rate:49 },
+  "NJCAA R8":    { rating:0.70, transfers:44,  d1Rate:42 },
+  "NJCAA R9":    { rating:0.73, transfers:52,  d1Rate:46 },
+  "NJCAA R10":   { rating:0.80, transfers:48,  d1Rate:52 },
+  "NJCAA R11":   { rating:0.78, transfers:61,  d1Rate:50 },
+  "NJCAA R12":   { rating:0.77, transfers:58,  d1Rate:49 },
+  "NJCAA R13":   { rating:0.80, transfers:67,  d1Rate:53 },
+  "NJCAA R15":   { rating:0.83, transfers:71,  d1Rate:57 },
+  "NJCAA R16":   { rating:0.78, transfers:34,  d1Rate:48 },
+  "NJCAA R17":   { rating:0.85, transfers:58,  d1Rate:60 },
+  "NJCAA R18":   { rating:0.76, transfers:46,  d1Rate:48 },
+  "NJCAA R19":   { rating:0.77, transfers:53,  d1Rate:49 },
+  "NJCAA R20":   { rating:0.86, transfers:88,  d1Rate:61 },
+  "NJCAA R21":   { rating:0.84, transfers:74,  d1Rate:58 },
+  "NJCAA R22":   { rating:0.83, transfers:62,  d1Rate:57 },
+  "NJCAA R23":   { rating:0.81, transfers:86,  d1Rate:55 },
+  "NJCAA R24":   { rating:0.80, transfers:54,  d1Rate:52 },
   // ── NON-NJCAA JUCO CONFERENCES ───────────────────────────────────────────
-  // CCCAA: California Community Colleges — Northern California Big 8 / Bay Valley etc.
-  // Produces MLB talent but geographic discount applies (park factors, scouting lag)
-  "CCCAA":     { rating:0.82, transfers:104, d1Rate:56 },
-  // CCCAA-S: Southern California — SC area, stronger recruiting pipeline to P5
-  "CCCAA-S":   { rating:0.85, transfers:128, d1Rate:60 },
-  // NWAC: Northwest Athletic Conference (OR/WA community colleges) — underrated
-  "NWAC":      { rating:0.82, transfers:58,  d1Rate:54 },
-  // NWAACC: Overlapping NW region — treat as equivalent to NWAC
-  "NWAACC":    { rating:0.81, transfers:32,  d1Rate:52 },
-  // NJACC: New Jersey Athletic Conference — Mid-Atlantic, below NJCAA R2 level
-  "NJACC":     { rating:0.75, transfers:28,  d1Rate:46 },
-  // NJCAA-DII: One tier below NJCAA D1 — multiply DI avg (~0.82) by 0.88
-  "NJCAA-DII": { rating:0.72, transfers:88,  d1Rate:44 },
-  // NJCAA-DIII-R1: Two tiers below D1 — multiply DI avg by 0.78
-  "NJCAA-DIII": { rating:0.64, transfers:24, d1Rate:34 },
-  // HAAC: Heartland Athletic Conference (IA/NE/MO/KS/OK) — consistent mid-major feeders
-  "HAAC":      { rating:0.78, transfers:46,  d1Rate:50 },
-  // MCAC: Minnesota College Athletic Conference — cold climate, below avg
-  "MCAC":      { rating:0.68, transfers:22,  d1Rate:40 },
-  // WJCAC: Western JUCO (TX Panhandle) — same recruiting belt as NJCAA R14
-  "WJCAC":     { rating:0.84, transfers:38,  d1Rate:58 },
-  // SWJCAC: Southwest JUCO (TX/NM border) — solid warm-weather programs
-  "SWJCAC":    { rating:0.81, transfers:32,  d1Rate:53 },
+  "CCCAA":       { rating:0.82, transfers:104, d1Rate:56 },
+  "CCCAA-S":     { rating:0.85, transfers:128, d1Rate:60 },
+  "NWAC":        { rating:0.82, transfers:58,  d1Rate:54 },
+  "NWAACC":      { rating:0.81, transfers:32,  d1Rate:52 },
+  "NJACC":       { rating:0.75, transfers:28,  d1Rate:46 },
+  "NJCAA-DII":   { rating:0.72, transfers:88,  d1Rate:44 },
+  "NJCAA-DIII":  { rating:0.64, transfers:24,  d1Rate:34 },
+  "HAAC":        { rating:0.78, transfers:46,  d1Rate:50 },
+  "MCAC":        { rating:0.68, transfers:22,  d1Rate:40 },
+  "WJCAC":       { rating:0.84, transfers:38,  d1Rate:58 },
+  "SWJCAC":      { rating:0.81, transfers:32,  d1Rate:53 },
 };
-
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HISTORICAL COMP DATABASE
@@ -979,7 +913,7 @@ function App(){
   const[settings]=useLocalStorage("dbp_settings26",{headCoach:""});
 
   useEffect(()=>{
-    if(!SHEETDB_URL.includes("REPLACE_WITH_YOUR_ID")){
+    if(SHEETDB_URL && SHEETDB_URL.startsWith("https://")){
       fetch(SHEETDB_URL).then(r=>r.json()).then(rows=>{setPlayers(rows.map(parsePlayer));setDataSource("live");}).catch(()=>{});
     }
   },[]);
@@ -998,12 +932,21 @@ function App(){
     if(posFilter.length)p=p.filter(x=>posFilter.includes(x.pos));
     p.sort((a,b)=>{
       let va,vb;
-      if(sortCol==="stat"){va=getMainStat(a)??-99;vb=getMainStat(b)??-99;}
-      else if(sortCol==="projStat"){const pa=projectToConf(a,targetConf),pb=projectToConf(b,targetConf);va=(a.isPitcher?pa.era:pa.ops)??-99;vb=(b.isPitcher?pb.era:pb.ops)??-99;}
+      // For ERA-based stats, lower value = better pitcher, so invert sort direction
+      // isPitcher check: use first player in comparison to detect pitcher context
+      const aIsPitcher = a.isPitcher, bIsPitcher = b.isPitcher;
+      const bothPitchers = aIsPitcher && bIsPitcher;
+      const eraCol = (sortCol==="stat"||sortCol==="projStat") && bothPitchers;
+      if(sortCol==="stat"){va=getMainStat(a)??999;vb=getMainStat(b)??999;}
+      else if(sortCol==="projStat"){const pa=projectToConf(a,targetConf),pb=projectToConf(b,targetConf);va=(a.isPitcher?pa.era??999:pa.ops??-99);vb=(b.isPitcher?pb.era??999:pb.ops??-99);}
       else if(sortCol==="probs_d1"){va=(a.isPitcher?a.probs.d1IP:a.probs.d1PA)??0;vb=(b.isPitcher?b.probs.d1IP:b.probs.d1PA)??0;}
       else if(sortCol==="name"){return sortDir==="asc"?a.name.localeCompare(b.name):b.name.localeCompare(a.name);}
+      else if(sortCol==="riskScore"){va=a.riskScore??99;vb=b.riskScore??99;}
       else{va=a[sortCol]??-99;vb=b[sortCol]??-99;}
-      return(va-vb)*(sortDir==="desc"?-1:1);
+      // ERA: lower is better — when user picks "desc" (best first), sort ascending in value
+      // OPS/gemScore: higher is better — "desc" sorts descending in value (normal)
+      const eraInvert = eraCol ? -1 : 1;
+      return(va-vb)*(sortDir==="desc"?-1:1)*eraInvert;
     });
     return p;
   },[players,search,posFilter,sortCol,sortDir,targetConf]);
