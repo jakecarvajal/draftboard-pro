@@ -612,19 +612,97 @@ function getTopComps(player, n=3) {
 }
 
 
+const SCHOOL_DOMAINS = {
+  "New Mexico State":"nmsu.edu","UTSA":"utsa.edu","FAU":"fau.edu","FIU":"fiu.edu",
+  "WKU":"wku.edu","UAB":"uab.edu","UTEP":"utep.edu","Old Dominion":"odu.edu",
+  "Marshall":"marshall.edu","Charlotte":"charlotte.edu","Middle Tennessee":"mtsu.edu",
+  "Rice":"rice.edu","North Texas":"unt.edu","Southern Miss":"usm.edu","Troy":"troy.edu",
+  "Sam Houston":"shsu.edu","Jacksonville State":"jsu.edu","Kennesaw State":"kennesaw.edu",
+  "Liberty":"liberty.edu","Coastal Carolina":"coastal.edu","App State":"appstate.edu",
+  "Louisiana":"louisiana.edu","Texas State":"txstate.edu","Arkansas State":"astate.edu",
+  "Louisiana Tech":"latech.edu","Incarnate Word":"uiw.edu","Lamar":"lamar.edu",
+  "Nicholls":"nicholls.edu","Southeastern Louisiana":"southeastern.edu",
+  "McNeese State":"mcneese.edu","Northwestern State":"nsula.edu",
+  "Stephen F. Austin":"sfasu.edu","Abilene Christian":"acu.edu",
+  "Grand Canyon":"gcu.edu","Northern Arizona":"nau.edu","Air Force":"usafa.edu",
+  "Alabama":"alabama.edu","Arkansas":"uark.edu","Arizona":"arizona.edu",
+  "Arizona State":"asu.edu","TCU":"tcu.edu","Houston":"uh.edu",
+  "Oregon":"uoregon.edu","Florida":"ufl.edu","LSU":"lsu.edu",
+  "Texas":"utexas.edu","Oklahoma":"ou.edu","NM State":"nmsu.edu",
+  "Tarleton State":"tarleton.edu","Incarnate Word":"uiw.edu","Denver":"du.edu",
+  "California Baptist":"calbaptist.edu","Hawaii":"hawaii.edu","Sacramento State":"csus.edu",
+  "Cal Poly":"calpoly.edu","UC Santa Barbara":"ucsb.edu","Long Beach State":"csulb.edu",
+};
+
+function getSchoolLogo(dest) {
+  if (!dest) return null;
+  const domain = SCHOOL_DOMAINS[dest];
+  if (domain) return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  // fallback: try to guess domain from school name
+  const slug = dest.toLowerCase().replace(/[^a-z0-9]/g,'').replace(/university|college|state/g,'');
+  return `https://www.google.com/s2/favicons?domain=${slug}.edu&sz=64`;
+}
+
+function SchoolLogo({dest, size=22}) {
+  const [src, setSrc] = React.useState(() => getSchoolLogo(dest));
+  const [failed, setFailed] = React.useState(false);
+  if (!dest || !src || failed) return null;
+  return <img src={src} alt={dest}
+    onError={() => {
+      // try clearbit fallback
+      const domain = SCHOOL_DOMAINS[dest];
+      if (domain && src.includes('google.com')) {
+        setSrc(`https://logo.clearbit.com/${domain}`);
+      } else {
+        setFailed(true);
+      }
+    }}
+    style={{width:size,height:size,borderRadius:4,objectFit:"contain",flexShrink:0,background:"rgba(255,255,255,.06)",padding:1}}
+  />;
+}
+
 
 function projectToConf(player, targetConf) {
   const target = CONF_TARGETS[targetConf];
   const source = CONF_SOURCE[player.conf] || { rating:0.85 };
   if (!target) return player.proj;
+
   if (!player.isPitcher && player.juco) {
-    const adjOps = player.juco.ops / 1.07;
-    const projOps = Math.round(adjOps * source.rating * target.opsMult * 1000) / 1000;
-    return { ...player.proj, ops:projOps, obp:Math.round(player.juco.obp*source.rating*target.opsMult*1.02*1000)/1000, slg:Math.round(player.juco.slg*source.rating*target.opsMult*0.98*1000)/1000, floor:Math.round((projOps-0.055)*1000)/1000, ceil:Math.round((projOps+0.062)*1000)/1000 };
+    const jucoOps = player.juco.ops;
+    // Step 1: normalize to D1-average baseline using source conference rating
+    const normalizedOps = jucoOps * source.rating;
+    // Step 2: regression to mean — elite stats face stronger regression
+    // Calibrated from: Rulli ACCAC→C-USA (.791), Davis ACCAC→Pac12 (.825), Climie R14→AAC (~.939)
+    let regressionFactor;
+    if (normalizedOps > 0.900) {
+      regressionFactor = 0.88 - (normalizedOps - 0.900) * 0.12; // steep dropoff for elite
+    } else if (normalizedOps > 0.780) {
+      regressionFactor = 0.91; // mid-tier holds value better
+    } else {
+      regressionFactor = 0.94; // below-avg faces less regression (survivorship bias)
+    }
+    // Step 3: apply target conference difficulty (normalized against C-USA baseline 0.828)
+    const projOps = Math.round(normalizedOps * regressionFactor * target.opsMult / 0.828 * 1000) / 1000;
+    const projObp = Math.round(player.juco.obp * source.rating * regressionFactor * target.opsMult / 0.828 * 1.01 * 1000) / 1000;
+    let projSlg = Math.round((projOps - projObp) * 1000) / 1000;
+    if (projSlg < projObp * 0.75) projSlg = Math.round(projObp * 0.85 * 1000) / 1000;
+    const finalOps = Math.round((projObp + projSlg) * 1000) / 1000;
+    return { ...player.proj, ops:finalOps, obp:projObp, slg:projSlg,
+      floor:Math.round((finalOps-0.062)*1000)/1000, ceil:Math.round((finalOps+0.068)*1000)/1000 };
   }
+
   if (player.isPitcher && player.jucoP) {
-    const projEra = Math.round(player.jucoP.era*(1/source.rating)*target.eraMult*100)/100;
-    return { ...player.proj, era:projEra, floor:Math.round((projEra+0.70)*100)/100, ceil:Math.round((projEra-0.52)*100)/100 };
+    const normalizedEra = player.jucoP.era / source.rating;
+    // K/9 adjustment: high-K arms maintain ERA better at D1
+    const kAdjust = player.jucoP.k9 > 10 ? 0.94 : player.jucoP.k9 > 8 ? 1.00 : 1.08;
+    const projEra = Math.round(normalizedEra * kAdjust * target.eraMult / 1.18 * 100) / 100;
+    const projWhip = Math.round(player.jucoP.whip / source.rating * kAdjust * (target.eraMult/1.18) * 0.96 * 100) / 100;
+    const projFip = Math.round(player.jucoP.fip / source.rating * kAdjust * target.eraMult / 1.18 * 100) / 100;
+    return { ...player.proj, era:projEra, whip:projWhip, fip:projFip,
+      k9:Math.round(player.jucoP.k9*0.86*100)/100,
+      bb9:Math.round(player.jucoP.bb9*1.12*100)/100,
+      floor:Math.round((projEra+0.75)*100)/100,
+      ceil:Math.round((projEra-0.55)*100)/100 };
   }
   return player.proj;
 }
@@ -729,7 +807,10 @@ function PlayerDetail({player,targetConf,onClose,watched,onWatch,notes,onNote}){
       </div>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
         <Badge text={p.status} type="status"/>
-        {p.dest&&<span style={{fontSize:12,color:"#4ade80"}}>→ {p.dest}</span>}
+        {p.dest&&<div style={{display:"flex",alignItems:"center",gap:5}}>
+          <SchoolLogo dest={p.dest} size={18}/>
+          <span style={{fontSize:13,fontWeight:600,color:p.status==="committed"?"#4ade80":p.status==="signed"?"#93c5fd":"#a78bfa"}}>→ {p.dest}</span>
+        </div>}
         {p.flag&&<Badge text={p.flag} type="flag"/>}
         <span style={{fontSize:11,color:"#4a5568"}}>{p.school} · {p.conf} · {p.year}</span>
       </div>
@@ -896,6 +977,185 @@ function PlayerDetail({player,targetConf,onClose,watched,onWatch,notes,onNote}){
 
 const SORT_OPTIONS=[{value:"gemScore",label:"Gem Score"},{value:"riskScore",label:"Risk Score"},{value:"confAdj",label:"Conf Adj Pct"},{value:"age",label:"Age"},{value:"name",label:"Name (A–Z)"},{value:"stat",label:"JUCO Stat"},{value:"projStat",label:"Projected Stat"},{value:"probs_d1",label:"D1 Playing Time Prob"}];
 
+function HelpModal({onClose}) {
+  const sections = [
+    {
+      title: "THE SCORES",
+      items: [
+        {
+          name: "Gem Score (0–100)",
+          badge: "core metric",
+          badgeColor: "#f6ad55",
+          desc: 'The hidden-value score. Answers: "How much does this player offer relative to recruiting attention?" Combines projected D1 production, conference strength, age, and trend.',
+          tiers: [
+            {range:"80–100", label:"Elite", color:"#4ade80", desc:"Legitimate D1 starter, possible draft pick. Prioritize immediately."},
+            {range:"65–79", label:"Strong", color:"#f6ad55", desc:"Mid-major starter or Power 5 depth. Worth a scholarship offer."},
+            {range:"45–64", label:"Solid", color:"#94a3b8", desc:"Roster filler or redshirt candidate at most D1 programs."},
+            {range:"0–44",  label:"Below", color:"#f87171", desc:"Unlikely to earn significant D1 playing time based on current stats."},
+          ],
+          note: "⚠ Gem Score is NOT a scouting grade — it's a statistical projection score. A player with a 40 Gem Score might have elite tools the stats don't yet reflect."
+        },
+        {
+          name: "Risk Score (0–100)",
+          badge: "lower = safer",
+          badgeColor: "#93c5fd",
+          desc: "Measures projection uncertainty. Low-risk players translate reliably. High-risk players may be inflated by small samples, weak competition, or age.",
+          tiers: [
+            {range:"0–30",   label:"Low",  color:"#4ade80", desc:"Large sample, strong conference, consistent trend. Trust the projection."},
+            {range:"31–45",  label:"Med",  color:"#fbbf24", desc:"One or two concern flags — high K%, declining trend. Use with caution."},
+            {range:"46–100", label:"High", color:"#f87171", desc:"Small sample, weak conference discount, or significant age concern."},
+          ],
+          note: "Risk factors: age 22+ (+8), K% above 20% (+10), MCCAA or weaker conference (+8), fewer than 150 PA (+12)."
+        }
+      ]
+    },
+    {
+      title: "PROJECTION COLUMNS",
+      items: [
+        {
+          name: "JUCO Stat",
+          badge: "raw",
+          badgeColor: "#94a3b8",
+          desc: "The player's raw statistic from their most recent JUCO season. Hitters: OPS (On-Base + Slugging). Pitchers: WHIP (Walks + Hits per Inning) — the most reliable single-inning quality metric.",
+        },
+        {
+          name: "Projected Stat",
+          badge: "modeled",
+          badgeColor: "#93c5fd",
+          desc: 'Expected performance at the D1 conference in the "Project to" dropdown. NOT a guarantee — a statistically-modeled estimate based on historical JUCO-to-D1 translation rates. Formula: source conference rating × regression-to-mean factor × target conference difficulty. Changing the dropdown recalculates every player live.',
+        }
+      ]
+    },
+    {
+      title: "PROBABILITY BARS",
+      items: [
+        {
+          name: "D1 Playing Time Prob",
+          badge: "in detail panel",
+          badgeColor: "#94a3b8",
+          desc: "Probability of earning 100+ PA (hitters) or 30+ IP (pitchers) in year 1. The best single metric for 'will this player actually play.' 55% = roster piece; 75%+ = likely starter.",
+        },
+        {
+          name: "P(above-avg D1 starter)",
+          badge: "",
+          badgeColor: "#94a3b8",
+          desc: "Probability of becoming above-average at the D1 level projected to — harder than simply playing. Means outperforming the average player at that position in that conference.",
+        },
+        {
+          name: "P(roster retained yr 2)",
+          badge: "",
+          badgeColor: "#94a3b8",
+          desc: "Probability the coaching staff keeps the player on scholarship after year 1. Players who don't produce often lose their spot to newer transfers.",
+        },
+        {
+          name: "P(pro opportunity)",
+          badge: "",
+          badgeColor: "#a78bfa",
+          desc: "Probability of attracting professional interest (draft, NDFA, or independent league) within 3 years of D1 debut. Based on projected production, age, and position scarcity.",
+        }
+      ]
+    },
+    {
+      title: "FLAGS & STATUS",
+      items: [
+        {
+          name: "Status Badges",
+          badge: "",
+          badgeColor: "#94a3b8",
+          desc: "",
+          tiers: [
+            {range:"Available", label:"", color:"#94a3b8", desc:"No known commitment. Active recruiting target."},
+            {range:"Committed", label:"", color:"#4ade80", desc:"Verbal commitment. Can still flip before signing."},
+            {range:"Signed",    label:"", color:"#93c5fd", desc:"NLI signed. Transfer is official."},
+            {range:"Drafted",   label:"", color:"#a78bfa", desc:"MLB Draft selection or amateur free agent signing."},
+          ]
+        },
+        {
+          name: "Flags",
+          badge: "",
+          badgeColor: "#94a3b8",
+          desc: "",
+          tiers: [
+            {range:"🔥 HOT",     label:"", color:"#fc8181", desc:"Gem Score 78+, currently available. Priority target."},
+            {range:"📈 Rising",  label:"", color:"#4ade80", desc:"Strong positive year-over-year trend. Production improving."},
+            {range:"👀 Watch",   label:"", color:"#fbbf24", desc:"Concern flag — high risk score, small sample, or declining trend."},
+          ]
+        }
+      ]
+    },
+    {
+      title: "CONFERENCE CONTEXT",
+      items: [
+        {
+          name: "Conf Adj Pct",
+          badge: "percentile",
+          badgeColor: "#94a3b8",
+          desc: "The player's percentile rank within their own conference. A 90th percentile ACCAC player is better relative to conference peers than a 60th percentile ACCAC player — even with similar raw stats. A .380 AVG in the ACCAC is an 88th percentile performance; the same AVG in the MCCAA may only be 65th.",
+        },
+        {
+          name: "Source Conference Strength",
+          badge: "in stats tab",
+          badgeColor: "#94a3b8",
+          desc: "A 0.00–1.00 coefficient of how competitive a JUCO conference is vs. D1 average. ACCAC = 0.90 (strongest). MCCAA = 0.79. Directly feeds the projection multiplier — the same JUCO OPS projects differently from ACCAC vs. MCCAA.",
+        }
+      ]
+    },
+    {
+      title: "COMPARABLE PLAYERS",
+      items: [
+        {
+          name: "Comps Tab",
+          badge: "in detail panel",
+          badgeColor: "#94a3b8",
+          desc: "Shows the 4 most statistically similar historical JUCO players and their D1 or pro outcomes. Similarity scored 0–100 from OPS differential, K%, ISO, conference match, age, and position. D1 comps show realistic outcomes; MLB comps show ceiling outcomes for elite prospects.",
+        }
+      ]
+    }
+  ];
+
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}
+    onClick={e=>e.target===e.currentTarget&&onClose()}>
+    <div style={{background:"#0f1623",border:"1px solid rgba(255,255,255,.1)",borderRadius:12,width:"100%",maxWidth:580,maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      {/* Header */}
+      <div style={{padding:"20px 24px 16px",borderBottom:"1px solid rgba(255,255,255,.06)",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div>
+          <h2 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:1.5,color:"#f6ad55",margin:0,lineHeight:1}}>HOW TO READ DRAFTBOARD PRO</h2>
+          <p style={{fontSize:12,color:"#4a5568",margin:"5px 0 0"}}>A quick reference for coaches using the dashboard for the first time.</p>
+        </div>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#4a5568",cursor:"pointer",fontSize:18,padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
+      </div>
+      {/* Scrollable content */}
+      <div style={{overflowY:"auto",flex:1,padding:"16px 24px 24px"}}>
+        {sections.map(section=>(
+          <div key={section.title} style={{marginBottom:20}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:".12em",color:"#4a5568",textTransform:"uppercase",marginBottom:10,paddingBottom:6,borderBottom:"1px solid rgba(255,255,255,.05)"}}>{section.title}</div>
+            {section.items.map(item=>(
+              <div key={item.name} style={{marginBottom:14,paddingLeft:2}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                  <span style={{fontSize:13,fontWeight:600,color:"#e2e8f0"}}>{item.name}</span>
+                  {item.badge&&<span style={{fontSize:9,fontWeight:600,padding:"2px 7px",borderRadius:3,background:"rgba(255,255,255,.06)",color:item.badgeColor,textTransform:"uppercase",letterSpacing:".06em"}}>{item.badge}</span>}
+                </div>
+                {item.desc&&<p style={{fontSize:12,color:"#94a3b8",lineHeight:1.65,margin:"0 0 8px"}}>{item.desc}</p>}
+                {item.tiers&&<div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:item.note?8:0}}>
+                  {item.tiers.map(tier=>(
+                    <div key={tier.range} style={{display:"flex",alignItems:"baseline",gap:8,padding:"5px 10px",background:"rgba(255,255,255,.02)",borderRadius:5,border:"1px solid rgba(255,255,255,.04)"}}>
+                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:600,color:tier.color,minWidth:52,flexShrink:0}}>{tier.range}</span>
+                      {tier.label&&<span style={{fontSize:11,fontWeight:600,color:tier.color,minWidth:40,flexShrink:0}}>{tier.label}</span>}
+                      <span style={{fontSize:12,color:"#718096",lineHeight:1.5}}>{tier.desc}</span>
+                    </div>
+                  ))}
+                </div>}
+                {item.note&&<p style={{fontSize:11,color:"#4a5568",lineHeight:1.6,margin:"6px 0 0",padding:"6px 10px",background:"rgba(246,173,85,.04)",borderRadius:5,border:"1px solid rgba(246,173,85,.1)"}}>{item.note}</p>}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>;
+}
+
+
 function App(){
   const[players,setPlayers]=useState(PLAYERS);
   const[dataSource,setDataSource]=useState("demo");
@@ -909,6 +1169,7 @@ function App(){
   const[flairFilter,setFlairFilter]=useState(null);
   const[cmdOpen,setCmdOpen]=useState(false);
   const[cmdQ,setCmdQ]=useState("");
+  const[helpOpen,setHelpOpen]=useState(false);
   const[watchlist,setWatchlist]=useLocalStorage("dbp_wl26",[]);
   const[notes,setNotes]=useLocalStorage("dbp_notes26",{});
   const[settings]=useLocalStorage("dbp_settings26",{headCoach:""});
@@ -977,6 +1238,7 @@ function App(){
       </div>
       <div style={{display:"flex",alignItems:"center",gap:8}}>
         <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:dataSource==="live"?"#4ade80":"#f6ad55"}}>● {dataSource==="live"?"LIVE":"DEMO"}</span>
+        <button onClick={()=>setHelpOpen(true)} aria-label="Help and glossary" style={{background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:"50%",cursor:"pointer",color:"#718096",fontFamily:"'DM Mono',monospace",fontSize:12,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center"}}>?</button>
         <button onClick={()=>setCmdOpen(true)} style={{background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:6,cursor:"pointer",color:"#718096",fontFamily:"'DM Mono',monospace",fontSize:11,padding:"4px 10px"}}>⌘K</button>
         <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#f6ad55,#ed8936)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#0c111b",fontFamily:"'DM Mono',monospace"}}>
           {(settings.headCoach||"C").charAt(0).toUpperCase()}
@@ -1069,29 +1331,27 @@ function App(){
                   const d1Prob=isERA?(p.probs.d1IP||0):(p.probs.d1PA||0);
                   return <tr key={p.id} onClick={()=>setSelected(selected===p.id?null:p.id)} tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&setSelected(selected===p.id?null:p.id)}
                     style={{borderBottom:"1px solid rgba(255,255,255,.04)",cursor:"pointer",background:selected===p.id?"rgba(246,173,85,.06)":"transparent",transition:"background .1s"}}>
-                    <td style={{padding:"9px 8px",minWidth:240}}>
+                    <td style={{padding:"9px 8px",minWidth:260}}>
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
                         <Avatar name={p.name} size={28}/>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
-                            <span style={{fontSize:13,fontWeight:500,color:"#e2e8f0"}}>{p.name}</span>
-                            {p.flag&&<Badge text={p.flag} type="flag"/>}
-                            <Badge text={p.status} type="status"/>
+                          {/* Name line: name on left, destination on right */}
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,flexWrap:"nowrap"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:5,minWidth:0,flexShrink:1,overflow:"hidden"}}>
+                              <span style={{fontSize:13,fontWeight:500,color:"#e2e8f0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</span>
+                              {p.flag&&<Badge text={p.flag} type="flag"/>}
+                              <Badge text={p.status} type="status"/>
+                            </div>
+                            {(p.status==="committed"||p.status==="signed"||p.status==="drafted")&&p.dest&&(
+                              <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,marginLeft:8}}>
+                                <SchoolLogo dest={p.dest} size={22}/>
+                                <span style={{fontSize:14,fontWeight:600,color:p.status==="committed"?"#4ade80":p.status==="signed"?"#93c5fd":"#a78bfa",whiteSpace:"nowrap"}}>
+                                  {p.status==="drafted"?"⚾ ":"→ "}{p.dest}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div style={{fontSize:11,color:"#4a5568",marginTop:1}}>{p.pos} · {p.school} · {p.conf}</div>
-                          {(p.status==="committed"||p.status==="signed"||p.status==="drafted")&&p.dest&&(
-                            <div style={{display:"flex",alignItems:"center",gap:4,marginTop:3}}>
-                              <img
-                                src={`https://logo.clearbit.com/${p.dest.toLowerCase().replace(/\s+/g,'')+'.edu'}`}
-                                alt={p.dest}
-                                onError={e=>{e.target.style.display="none";}}
-                                style={{width:14,height:14,borderRadius:2,objectFit:"contain",flexShrink:0}}
-                              />
-                              <span style={{fontSize:11,color:p.status==="committed"?"#4ade80":p.status==="signed"?"#93c5fd":"#a78bfa",fontWeight:500}}>
-                                {p.status==="drafted"?"⚾ ":"→ "}{p.dest}
-                              </span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </td>
@@ -1193,6 +1453,7 @@ function App(){
       {selPlayer&&<PlayerDetail player={selPlayer} targetConf={targetConf} onClose={()=>setSelected(null)} watched={watchlist.includes(selPlayer.id)} onWatch={onWatch} notes={notes} onNote={onNote}/>}
     </main>
 
+    {helpOpen&&<HelpModal onClose={()=>setHelpOpen(false)}/>}
     {cmdOpen&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:300,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"80px 20px"}} onClick={e=>e.target===e.currentTarget&&setCmdOpen(false)}>
       <div style={{background:"#0f1623",border:"1px solid rgba(255,255,255,.1)",borderRadius:12,width:"100%",maxWidth:520,overflow:"hidden"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,.06)"}}>
