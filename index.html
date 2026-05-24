@@ -675,8 +675,8 @@ const riskLabel=(s)=>s<=30?"LOW":s<=45?"MED":"HIGH";
 const flagColors={"HOT":["rgba(239,68,68,.15)","#fc8181"],"RISING":["rgba(34,197,94,.12)","#4ade80"],"WATCH":["rgba(251,191,36,.12)","#fbbf24"]};
 const statusColors={"available":["rgba(148,163,184,.08)","#94a3b8"],"committed":["rgba(74,222,128,.1)","#4ade80"],"signed":["rgba(147,197,253,.1)","#93c5fd"],"drafted":["rgba(167,139,250,.1)","#a78bfa"]};
 const initials=(n)=>n.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
-const getMainStat=(p)=>p.isPitcher?(p.jucoP?.era??null):(p.juco?.ops??null);
-const getStatLabel=(p)=>p.isPitcher?"ERA":"OPS";
+const getMainStat=(p)=>p.isPitcher?(p.jucoP?.whip??null):(p.juco?.ops??null);
+const getStatLabel=(p)=>p.isPitcher?"WHIP":"OPS";
 const S={
   card:{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.06)",borderRadius:10,padding:"14px 16px"},
   label:{fontSize:10,fontWeight:600,letterSpacing:".08em",color:"#4a5568",textTransform:"uppercase",marginBottom:6},
@@ -906,6 +906,7 @@ function App(){
   const[selected,setSelected]=useState(null);
   const[view,setView]=useState("board");
   const[posFilter,setPosFilter]=useState([]);
+  const[flairFilter,setFlairFilter]=useState(null);
   const[cmdOpen,setCmdOpen]=useState(false);
   const[cmdQ,setCmdQ]=useState("");
   const[watchlist,setWatchlist]=useLocalStorage("dbp_wl26",[]);
@@ -930,6 +931,13 @@ function App(){
     let p=[...players];
     if(search){const q=search.toLowerCase();p=p.filter(x=>x.name.toLowerCase().includes(q)||x.school.toLowerCase().includes(q)||x.pos.toLowerCase().includes(q));}
     if(posFilter.length)p=p.filter(x=>posFilter.includes(x.pos));
+    if(flairFilter){
+      if(["available","committed","signed","drafted"].includes(flairFilter)){
+        p=p.filter(x=>x.status===flairFilter);
+      } else {
+        p=p.filter(x=>x.flag===flairFilter);
+      }
+    }
     p.sort((a,b)=>{
       let va,vb;
       // For ERA-based stats, lower value = better pitcher, so invert sort direction
@@ -937,7 +945,7 @@ function App(){
       const aIsPitcher = a.isPitcher, bIsPitcher = b.isPitcher;
       const bothPitchers = aIsPitcher && bIsPitcher;
       const eraCol = (sortCol==="stat"||sortCol==="projStat") && bothPitchers;
-      if(sortCol==="stat"){va=getMainStat(a)??999;vb=getMainStat(b)??999;}
+      if(sortCol==="stat"){va=getMainStat(a)??999;vb=getMainStat(b)??999;}  // WHIP for pitchers, OPS for hitters
       else if(sortCol==="projStat"){const pa=projectToConf(a,targetConf),pb=projectToConf(b,targetConf);va=(a.isPitcher?pa.era??999:pa.ops??-99);vb=(b.isPitcher?pb.era??999:pb.ops??-99);}
       else if(sortCol==="probs_d1"){va=(a.isPitcher?a.probs.d1IP:a.probs.d1PA)??0;vb=(b.isPitcher?b.probs.d1IP:b.probs.d1PA)??0;}
       else if(sortCol==="name"){return sortDir==="asc"?a.name.localeCompare(b.name):b.name.localeCompare(a.name);}
@@ -949,7 +957,7 @@ function App(){
       return(va-vb)*(sortDir==="desc"?-1:1)*eraInvert;
     });
     return p;
-  },[players,search,posFilter,sortCol,sortDir,targetConf]);
+  },[players,search,posFilter,flairFilter,sortCol,sortDir,targetConf]);
 
   const selPlayer=useMemo(()=>selected?players.find(p=>p.id===selected):null,[selected,players]);
   const cmdResults=useMemo(()=>{if(!cmdQ.trim())return[];const q=cmdQ.toLowerCase();return players.filter(p=>p.name.toLowerCase().includes(q)||p.school.toLowerCase().includes(q)).slice(0,8);},[cmdQ,players]);
@@ -994,6 +1002,32 @@ function App(){
 
           <div style={{width:1,height:20,background:"rgba(255,255,255,.08)",flexShrink:0}}/>
 
+          {/* Flair filter */}
+          <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+            {[
+              {value:null,       label:"All",      bg:"rgba(255,255,255,.04)", col:"#718096"},
+              {value:"available",label:"Available", bg:"rgba(148,163,184,.12)", col:"#94a3b8"},
+              {value:"committed",label:"Committed", bg:"rgba(74,222,128,.12)",  col:"#4ade80"},
+              {value:"signed",   label:"Signed",    bg:"rgba(147,197,253,.12)", col:"#93c5fd"},
+              {value:"drafted",  label:"Drafted",   bg:"rgba(167,139,250,.12)", col:"#a78bfa"},
+              {value:"HOT",      label:"🔥 HOT",    bg:"rgba(239,68,68,.12)",   col:"#fc8181"},
+              {value:"RISING",   label:"📈 Rising", bg:"rgba(34,197,94,.10)",   col:"#4ade80"},
+              {value:"WATCH",    label:"👀 Watch",  bg:"rgba(251,191,36,.10)",  col:"#fbbf24"},
+            ].map(({value,label,bg,col})=>(
+              <button key={String(value)} onClick={()=>setFlairFilter(flairFilter===value?null:value)}
+                aria-pressed={flairFilter===value}
+                style={{padding:"3px 9px",borderRadius:12,fontSize:11,fontWeight:600,cursor:"pointer",
+                  background:flairFilter===value?bg:"rgba(255,255,255,.03)",
+                  border:`1px solid ${flairFilter===value?col+"66":"rgba(255,255,255,.08)"}`,
+                  color:flairFilter===value?col:"#4a5568",
+                  fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",transition:"all .15s"}}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{width:1,height:20,background:"rgba(255,255,255,.08)",flexShrink:0}}/>
+
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:10,color:"#4a5568",fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>Project to</span>
             <select value={targetConf} onChange={e=>setTargetConf(e.target.value)} style={{...S.sel,width:148}}>
@@ -1031,26 +1065,39 @@ function App(){
               {filtered.length===0?<tr><td colSpan={7} style={{padding:"40px",textAlign:"center",fontSize:14,color:"#4a5568"}}>No players match your filters.</td></tr>
                 :filtered.map(p=>{
                   const mainStat=getMainStat(p),proj=projectToConf(p,targetConf),projStat=p.isPitcher?proj.era:proj.ops,isERA=p.isPitcher;
-                  const statColor=mainStat!=null?(isERA?(mainStat<2.5?"#f6ad55":mainStat<3.5?"#a78bfa":"#e2e8f0"):(mainStat>1.0?"#f6ad55":mainStat>.900?"#a78bfa":"#e2e8f0")):"#e2e8f0";
+                  const statColor=mainStat!=null?(isERA?(mainStat<0.95?"#f6ad55":mainStat<1.15?"#a78bfa":"#e2e8f0"):(mainStat>1.0?"#f6ad55":mainStat>.900?"#a78bfa":"#e2e8f0")):"#e2e8f0";
                   const d1Prob=isERA?(p.probs.d1IP||0):(p.probs.d1PA||0);
                   return <tr key={p.id} onClick={()=>setSelected(selected===p.id?null:p.id)} tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&setSelected(selected===p.id?null:p.id)}
                     style={{borderBottom:"1px solid rgba(255,255,255,.04)",cursor:"pointer",background:selected===p.id?"rgba(246,173,85,.06)":"transparent",transition:"background .1s"}}>
-                    <td style={{padding:"9px 8px",minWidth:220}}>
+                    <td style={{padding:"9px 8px",minWidth:240}}>
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
                         <Avatar name={p.name} size={28}/>
-                        <div>
+                        <div style={{flex:1,minWidth:0}}>
                           <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
                             <span style={{fontSize:13,fontWeight:500,color:"#e2e8f0"}}>{p.name}</span>
                             {p.flag&&<Badge text={p.flag} type="flag"/>}
                             <Badge text={p.status} type="status"/>
                           </div>
                           <div style={{fontSize:11,color:"#4a5568",marginTop:1}}>{p.pos} · {p.school} · {p.conf}</div>
+                          {(p.status==="committed"||p.status==="signed"||p.status==="drafted")&&p.dest&&(
+                            <div style={{display:"flex",alignItems:"center",gap:4,marginTop:3}}>
+                              <img
+                                src={`https://logo.clearbit.com/${p.dest.toLowerCase().replace(/\s+/g,'')+'.edu'}`}
+                                alt={p.dest}
+                                onError={e=>{e.target.style.display="none";}}
+                                style={{width:14,height:14,borderRadius:2,objectFit:"contain",flexShrink:0}}
+                              />
+                              <span style={{fontSize:11,color:p.status==="committed"?"#4ade80":p.status==="signed"?"#93c5fd":"#a78bfa",fontWeight:500}}>
+                                {p.status==="drafted"?"⚾ ":"→ "}{p.dest}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
                     <td style={{padding:"9px 8px",textAlign:"right"}}>
                       <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,fontWeight:500,color:statColor}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span>
-                      <div style={{fontSize:10,color:"#4a5568"}}>{isERA?"ERA":"OPS"}</div>
+                      <div style={{fontSize:10,color:"#4a5568"}}>{isERA?"WHIP":"OPS"}</div>
                     </td>
                     <td style={{padding:"9px 8px",textAlign:"right"}}>
                       <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,fontWeight:500,color:"#93c5fd"}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span>
