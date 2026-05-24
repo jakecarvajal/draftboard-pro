@@ -1,1 +1,445 @@
-file:///C:/Users/Dirk/Downloads/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DraftBoard Pro</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0c111b; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #0c111b; }
+    ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 2px; }
+    :focus-visible { outline: 2px solid #f6ad55 !important; outline-offset: 2px; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes slideInRight { from { transform:translateX(100%); } to { transform:translateX(0); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+    input[type=range] { -webkit-appearance:none; appearance:none; height:4px; border-radius:2px; background:rgba(255,255,255,.1); cursor:pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#f6ad55; cursor:pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #f6ad55 !important; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+const { useState, useMemo, useCallback, useEffect, useRef } = React;
+
+const SHEETDB_URL = "https://sheetdb.io/api/v1/REPLACE_WITH_YOUR_ID";
+
+function parsePlayer(row) {
+  const bool = (v) => v === "TRUE" || v === "true" || v === "1";
+  const num  = (v) => v === "" || v == null ? null : Number(v);
+  const str  = (v) => v === "" || v == null ? null : String(v);
+  return {
+    id:        Number(row.id),        name:      row.name,
+    pos:       row.pos,               school:    row.school,
+    conf:      row.conf,              year:      Number(row.year),
+    age:       Number(row.age),       ht:        row.ht,
+    wt:        Number(row.wt),        bats:      row.bats,
+    throws:    row.throws,            hometown:  row.hometown,
+    isPitcher: bool(row.isPitcher),
+    juco: bool(row.isPitcher) ? null : {
+      avg:num(row.juco_avg),obp:num(row.juco_obp),slg:num(row.juco_slg),ops:num(row.juco_ops),
+      iso:num(row.juco_iso),bbPct:num(row.juco_bbPct),kPct:num(row.juco_kPct),sb:num(row.juco_sb),
+      cs:num(row.juco_cs),pa:num(row.juco_pa),hr:num(row.juco_hr),rbi:num(row.juco_rbi),
+      doubles:num(row.juco_doubles),triples:num(row.juco_triples),
+    },
+    jucoP: !bool(row.isPitcher) ? null : {
+      era:num(row.jucoP_era),whip:num(row.jucoP_whip),k9:num(row.jucoP_k9),bb9:num(row.jucoP_bb9),
+      fip:num(row.jucoP_fip),ip:num(row.jucoP_ip),velo:num(row.jucoP_velo),gs:num(row.jucoP_gs),sv:num(row.jucoP_sv),
+    },
+    proj:{
+      ops:num(row.proj_ops),obp:num(row.proj_obp),slg:num(row.proj_slg),
+      floor:num(row.proj_floor),ceil:num(row.proj_ceil),
+      era:num(row.proj_era),fip:num(row.proj_fip),k9:num(row.proj_k9),bb9:num(row.proj_bb9),
+    },
+    probs:{
+      d1PA:num(row.probs_d1PA),d1IP:num(row.probs_d1IP),avgStarter:num(row.probs_avgStarter),
+      retained:num(row.probs_retained),pro:num(row.probs_pro),
+    },
+    gemScore:Number(row.gemScore),riskScore:Number(row.riskScore),surplus:Number(row.surplus),
+    trend:row.trend,confAdj:Number(row.confAdj),status:row.status,
+    dest:str(row.dest),flag:str(row.flag),notes:row.notes,
+  };
+}
+
+const DEMO_PLAYERS = [
+  {id:1,name:"Darius Webb",pos:"CF",school:"San Jacinto College",conf:"NJCAA R14",year:2025,age:20,ht:"6'1\"",wt:190,bats:"L",throws:"R",hometown:"Houston, TX",isPitcher:false,juco:{avg:.371,obp:.461,slg:.588,ops:1.049,iso:.217,bbPct:12.4,kPct:14.2,sb:31,cs:3,pa:209,hr:6,rbi:48,doubles:14,triples:3},jucoP:null,proj:{ops:.841,obp:.402,slg:.462,floor:.760,ceil:.920,era:null,fip:null,k9:null,bb9:null},probs:{d1PA:79,d1IP:null,avgStarter:71,retained:73,pro:38},gemScore:86,riskScore:19,surplus:34200,trend:"+.183",confAdj:96,status:"available",dest:null,flag:"HOT",notes:"Elite walk rate and elite speed combination. Plus-plus CF defender."},
+  {id:2,name:"Easton Rulli",pos:"2B",school:"Central Arizona College",conf:"ACCAC",year:2025,age:21,ht:"5'10\"",wt:185,bats:"R",throws:"R",hometown:"Moorpark, CA",isPitcher:false,juco:{avg:.396,obp:.448,slg:.650,ops:1.098,iso:.254,bbPct:4.1,kPct:8.1,sb:22,cs:2,pa:222,hr:8,rbi:61,doubles:18,triples:4},jucoP:null,proj:{ops:.812,obp:.378,slg:.448,floor:.720,ceil:.870,era:null,fip:null,k9:null,bb9:null},probs:{d1PA:74,d1IP:null,avgStarter:62,retained:68,pro:31},gemScore:74,riskScore:28,surplus:26800,trend:"+.269",confAdj:92,status:"committed",dest:"NM State",flag:null,notes:"Elite contact rate (8.1% K) with growing power."},
+  {id:3,name:"Marcus Hill",pos:"RP",school:"Pima Community College",conf:"ACCAC",year:2024,age:21,ht:"6'1\"",wt:190,bats:"R",throws:"R",hometown:"Tucson, AZ",isPitcher:true,juco:null,jucoP:{era:1.92,whip:0.94,k9:12.8,bb9:2.4,fip:1.88,ip:47.0,velo:95,gs:0,sv:12},proj:{ops:null,obp:null,slg:null,floor:3.90,ceil:2.40,era:3.12,fip:3.24,k9:10.6,bb9:2.9},probs:{d1PA:null,d1IP:82,avgStarter:74,retained:78,pro:51},gemScore:83,riskScore:18,surplus:32800,trend:"−0.78 ERA",confAdj:94,status:"committed",dest:"Arizona",flag:"HOT",notes:"Legitimate closer stuff — 95 mph fastball with a wipeout slider."},
+  {id:4,name:"Cole Ramsey",pos:"SP",school:"Blinn College",conf:"NJCAA R14",year:2025,age:21,ht:"6'5\"",wt:220,bats:"R",throws:"R",hometown:"Bryan, TX",isPitcher:true,juco:null,jucoP:{era:2.44,whip:1.04,k9:10.8,bb9:2.6,fip:2.52,ip:74.0,velo:94,gs:12,sv:0},proj:{ops:null,obp:null,slg:null,floor:4.10,ceil:2.80,era:3.28,fip:3.44,k9:9.0,bb9:3.0},probs:{d1PA:null,d1IP:79,avgStarter:68,retained:74,pro:46},gemScore:80,riskScore:21,surplus:30400,trend:"−0.52 ERA",confAdj:91,status:"available",dest:null,flag:"HOT",notes:"Big body with projection remaining. 94 mph, scouts expect 96-97."},
+  {id:5,name:"Jaylen Moss",pos:"RF",school:"Eastern Arizona College",conf:"ACCAC",year:2025,age:20,ht:"6'2\"",wt:200,bats:"R",throws:"R",hometown:"Mesa, AZ",isPitcher:false,juco:{avg:.362,obp:.441,slg:.604,ops:1.045,iso:.242,bbPct:11.2,kPct:16.1,sb:14,cs:4,pa:214,hr:10,rbi:55,doubles:17,triples:2},jucoP:null,proj:{ops:.826,obp:.388,slg:.452,floor:.740,ceil:.900,era:null,fip:null,k9:null,bb9:null},probs:{d1PA:76,d1IP:null,avgStarter:67,retained:70,pro:35},gemScore:79,riskScore:24,surplus:28600,trend:"+.148",confAdj:91,status:"available",dest:null,flag:"RISING",notes:"Power-speed combo. ISO .242 with 14 SB in 18 attempts."},
+  {id:6,name:"Isaiah Carter",pos:"1B",school:"Cochise College",conf:"ACCAC",year:2025,age:22,ht:"6'4\"",wt:235,bats:"L",throws:"R",hometown:"Tucson, AZ",isPitcher:false,juco:{avg:.388,obp:.474,slg:.712,ops:1.186,iso:.324,bbPct:14.1,kPct:18.7,sb:2,cs:1,pa:198,hr:14,rbi:67,doubles:16,triples:1},jucoP:null,proj:{ops:.858,obp:.412,slg:.490,floor:.760,ceil:.960,era:null,fip:null,k9:null,bb9:null},probs:{d1PA:71,d1IP:null,avgStarter:66,retained:68,pro:42},gemScore:71,riskScore:38,surplus:29100,trend:"+.214",confAdj:88,status:"available",dest:null,flag:null,notes:"Massive raw power — 14 HR in 198 PA is elite."},
+  {id:7,name:"Marco Delgado",pos:"SP",school:"Gulf Coast State College",conf:"GCAC",year:2025,age:20,ht:"6'3\"",wt:205,bats:"R",throws:"R",hometown:"Miami, FL",isPitcher:true,juco:null,jucoP:{era:2.14,whip:0.98,k9:11.4,bb9:2.8,fip:2.31,ip:67.1,velo:93,gs:11,sv:0},proj:{ops:null,obp:null,slg:null,floor:4.20,ceil:2.90,era:3.48,fip:3.62,k9:9.1,bb9:3.4},probs:{d1PA:null,d1IP:77,avgStarter:64,retained:71,pro:44},gemScore:81,riskScore:22,surplus:31500,trend:"−0.61 ERA",confAdj:89,status:"available",dest:null,flag:"HOT",notes:"Best arm in the GCAC. 11.4 K/9 plays at any level."},
+  {id:8,name:"Devon Parks",pos:"2B",school:"Mesa Community College",conf:"ACCAC",year:2025,age:20,ht:"5'9\"",wt:172,bats:"S",throws:"R",hometown:"Gilbert, AZ",isPitcher:false,juco:{avg:.355,obp:.432,slg:.502,ops:.934,iso:.147,bbPct:11.4,kPct:11.8,sb:28,cs:5,pa:203,hr:4,rbi:39,doubles:13,triples:5},jucoP:null,proj:{ops:.798,obp:.378,slg:.432,floor:.720,ceil:.870,era:null,fip:null,k9:null,bb9:null},probs:{d1PA:74,d1IP:null,avgStarter:63,retained:69,pro:26},gemScore:72,riskScore:26,surplus:23700,trend:"+.122",confAdj:87,status:"available",dest:null,flag:"RISING",notes:"Switch-hitting contact machine with elite speed."},
+  {id:9,name:"Jesus Morales",pos:"RP",school:"Temple College",conf:"NJCAA R14",year:2025,age:21,ht:"6'2\"",wt:200,bats:"R",throws:"R",hometown:"Temple, TX",isPitcher:true,juco:null,jucoP:{era:2.08,whip:1.01,k9:11.9,bb9:3.2,fip:2.24,ip:43.1,velo:93,gs:0,sv:9},proj:{ops:null,obp:null,slg:null,floor:3.70,ceil:2.60,era:3.18,fip:3.32,k9:9.8,bb9:3.6},probs:{d1PA:null,d1IP:78,avgStarter:67,retained:72,pro:42},gemScore:77,riskScore:24,surplus:27200,trend:"−0.68 ERA",confAdj:88,status:"available",dest:null,flag:"HOT",notes:"Electric reliever arm. 93 mph/plus changeup."},
+  {id:10,name:"Tre Williams",pos:"SS",school:"Weatherford College",conf:"NJCAA R14",year:2025,age:20,ht:"6'0\"",wt:180,bats:"R",throws:"R",hometown:"Fort Worth, TX",isPitcher:false,juco:{avg:.348,obp:.422,slg:.534,ops:.956,iso:.186,bbPct:10.4,kPct:15.6,sb:19,cs:4,pa:211,hr:7,rbi:49,doubles:14,triples:3},jucoP:null,proj:{ops:.804,obp:.370,slg:.440,floor:.720,ceil:.880,era:null,fip:null,k9:null,bb9:null},probs:{d1PA:75,d1IP:null,avgStarter:64,retained:70,pro:32},gemScore:73,riskScore:27,surplus:24400,trend:"+.162",confAdj:88,status:"available",dest:null,flag:"RISING",notes:"Athletic SS with above-average instincts and arm."},
+];
+
+const CONF_DATA = {
+  "ACCAC":     {rating:0.90,transfers:142,d1Rate:68,opsMult:0.880,eraMult:1.144},
+  "NJCAA R14": {rating:0.88,transfers:118,d1Rate:64,opsMult:0.861,eraMult:1.168},
+  "GCAC":      {rating:0.84,transfers:97, d1Rate:59,opsMult:0.822,eraMult:1.221},
+  "MCCAA":     {rating:0.79,transfers:63, d1Rate:51,opsMult:0.772,eraMult:1.299},
+  "NJCAA R1":  {rating:0.81,transfers:88, d1Rate:55,opsMult:0.792,eraMult:1.266},
+};
+
+const fmt3=(n)=>n==null?"—":Number(n).toFixed(3);
+const fmt2=(n)=>n==null?"—":Number(n).toFixed(2);
+const fmtK=(n)=>n==null?"—":`$${(Number(n)/1000).toFixed(1)}k`;
+const gemColor=(s)=>s>=80?"#4ade80":s>=65?"#f6ad55":s>=45?"#94a3b8":"#f87171";
+const riskColor=(s)=>s<=30?"#4ade80":s<=45?"#fbbf24":"#f87171";
+const riskLabel=(s)=>s<=30?"LOW":s<=45?"MED":"HIGH";
+const flagColors={"HOT":["rgba(239,68,68,.15)","#fc8181"],"RISING":["rgba(34,197,94,.12)","#4ade80"],"WATCH":["rgba(251,191,36,.12)","#fbbf24"]};
+const statusColors={"available":["rgba(148,163,184,.08)","#94a3b8"],"committed":["rgba(74,222,128,.1)","#4ade80"],"signed":["rgba(147,197,253,.1)","#93c5fd"],"drafted":["rgba(167,139,250,.1)","#a78bfa"]};
+const initials=(n)=>n.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+const getMainStat=(p)=>p.isPitcher?(p.jucoP?.era??null):(p.juco?.ops??null);
+const getProjStat=(p)=>p.isPitcher?(p.proj?.era??null):(p.proj?.ops??null);
+const getStatLabel=(p)=>p.isPitcher?"ERA":"OPS";
+const S={
+  card:{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.06)",borderRadius:10,padding:"14px 16px"},
+  label:{fontSize:10,fontWeight:600,letterSpacing:".08em",color:"#4a5568",textTransform:"uppercase",marginBottom:6},
+  mono:{fontFamily:"'DM Mono',monospace"},
+  divider:{height:1,background:"rgba(255,255,255,.05)",margin:"14px 0"},
+};
+
+function useLocalStorage(key,initial){
+  const[val,setVal]=useState(()=>{try{const s=localStorage.getItem(key);return s?JSON.parse(s):initial;}catch{return initial;}});
+  const set=useCallback((v)=>{const next=typeof v==="function"?v(val):v;setVal(next);try{localStorage.setItem(key,JSON.stringify(next));}catch{}},[key,val]);
+  return[val,set];
+}
+
+function Avatar({name,size=36}){
+  const colors=["#3C3489","#085041","#712B13","#0C447C","#633806"];
+  const idx=name.charCodeAt(0)%colors.length;
+  return <div style={{width:size,height:size,borderRadius:"50%",background:`${colors[idx]}33`,border:`1px solid ${colors[idx]}55`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.35,fontWeight:600,color:`${colors[idx]}cc`,flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{initials(name)}</div>;
+}
+
+function Badge({text,type}){
+  const[bg,col]=type==="flag"?(flagColors[text]||["rgba(255,255,255,.08)","#94a3b8"]):type==="status"?(statusColors[text]||["rgba(255,255,255,.08)","#94a3b8"]):["rgba(255,255,255,.08)","#94a3b8"];
+  return <span style={{display:"inline-block",fontSize:10,fontWeight:600,letterSpacing:".06em",padding:"2px 8px",borderRadius:3,background:bg,color:col,textTransform:"uppercase"}}>{text}</span>;
+}
+
+function ProbBar({label,value,color="#4ade80"}){
+  return <div style={{marginBottom:10}}>
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+      <span style={{fontSize:12,color:"#94a3b8"}}>{label}</span>
+      <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:500,color}}>{value}%</span>
+    </div>
+    <div style={{height:4,background:"rgba(255,255,255,.08)",borderRadius:2,overflow:"hidden"}}>
+      <div style={{width:`${value}%`,height:"100%",background:color,opacity:.75,borderRadius:2}}/>
+    </div>
+  </div>;
+}
+
+function PlayerDetail({player,onClose,watched,onWatch,notes,onNote}){
+  const[tab,setTab]=useState("overview");
+  const[noteText,setNoteText]=useState("");
+  if(!player)return null;
+  const p=player,mainStat=getMainStat(p),projStat=getProjStat(p),isERA=p.isPitcher;
+  const playerNotes=notes[p.id]||[];
+  return <div style={{position:"fixed",top:0,right:0,height:"100vh",width:"min(500px,100vw)",background:"#0c111b",borderLeft:"1px solid rgba(255,255,255,.08)",zIndex:100,display:"flex",flexDirection:"column",overflowY:"auto",animation:"slideInRight .2s ease"}}>
+    <div style={{padding:"20px 24px 0",flexShrink:0}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+        <div>
+          <h2 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:1,color:"#f6ad55",lineHeight:1,margin:0}}>{p.name.toUpperCase()}</h2>
+          <p style={{fontSize:12,color:"#718096",margin:"4px 0 0"}}>{p.pos} · {p.ht} {p.wt}lb · Age {p.age} · {p.hometown}</p>
+        </div>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#4a5568",cursor:"pointer",fontSize:20,padding:4,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+        <Badge text={p.status} type="status"/>
+        {p.dest&&<span style={{fontSize:12,color:"#4ade80"}}>→ {p.dest}</span>}
+        {p.flag&&<Badge text={p.flag} type="flag"/>}
+        <span style={{fontSize:11,color:"#4a5568"}}>{p.school} · {p.conf}</span>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:14}}>
+        {[["JUCO",mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—","#f6ad55"],["PROJ",projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—","#93c5fd"],["GEM",p.gemScore,gemColor(p.gemScore)],["RISK",`${p.riskScore}`,riskColor(p.riskScore)],["SURP",fmtK(p.surplus),"#a78bfa"]].map(([l,v,c])=>(
+          <div key={l} style={{...S.card,padding:"8px 10px",textAlign:"center"}}>
+            <div style={{fontSize:9,color:"#4a5568",textTransform:"uppercase",marginBottom:3}}>{l}</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,fontWeight:500,color:c}}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+        {["overview","stats","notes"].map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{background:"none",border:"none",borderBottom:tab===t?"2px solid #f6ad55":"2px solid transparent",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,padding:"8px 12px",color:tab===t?"#f6ad55":"#718096",textTransform:"capitalize"}}>{t}</button>
+        ))}
+      </div>
+    </div>
+    <div style={{padding:"18px 24px",flex:1}}>
+      {tab==="overview"&&<div>
+        <p style={{fontSize:13,color:"#94a3b8",lineHeight:1.7,marginBottom:16}}>{p.notes}</p>
+        <div style={S.divider}/>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>onWatch(p.id)} style={{flex:1,padding:"9px 0",borderRadius:6,cursor:"pointer",background:watched?"rgba(246,173,85,.15)":"rgba(255,255,255,.04)",border:`1px solid ${watched?"rgba(246,173,85,.4)":"rgba(255,255,255,.08)"}`,color:watched?"#f6ad55":"#718096",fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500}}>{watched?"★ Watchlisted":"☆ Add to Watchlist"}</button>
+        </div>
+      </div>}
+      {tab==="stats"&&<div>
+        {!isERA&&p.juco?<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7}}>
+          {[["AVG",fmt3(p.juco.avg)],["OBP",fmt3(p.juco.obp)],["SLG",fmt3(p.juco.slg)],["OPS",fmt3(p.juco.ops),"#f6ad55"],["ISO",fmt3(p.juco.iso)],["BB%",p.juco.bbPct+"%"],["K%",p.juco.kPct+"%"],["PA",p.juco.pa],["HR",p.juco.hr],["SB",p.juco.sb],["2B",p.juco.doubles],["3B",p.juco.triples]].map(([l,v,c])=>(
+            <div key={l} style={{...S.card,padding:"8px 10px"}}><div style={{fontSize:9,color:"#4a5568",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:500,color:c||"#a5b4fc",marginTop:2}}>{v}</div></div>
+          ))}
+        </div>:p.jucoP?<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7}}>
+          {[["ERA",fmt2(p.jucoP.era),"#f6ad55"],["WHIP",fmt2(p.jucoP.whip)],["FIP",fmt2(p.jucoP.fip)],["K/9",p.jucoP.k9?.toFixed(1)],["BB/9",p.jucoP.bb9?.toFixed(1)],["IP",p.jucoP.ip],["Velo",p.jucoP.velo+" mph"],["GS",p.jucoP.gs],["SV",p.jucoP.sv]].map(([l,v,c])=>(
+            <div key={l} style={{...S.card,padding:"8px 10px"}}><div style={{fontSize:9,color:"#4a5568",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:500,color:c||"#a5b4fc",marginTop:2}}>{v}</div></div>
+          ))}
+        </div>:null}
+        <div style={{...S.divider}}/>
+        <ProbBar label={`P(${isERA?"30+ IP":"100+ PA"})`} value={isERA?(p.probs.d1IP||0):(p.probs.d1PA||0)} color="#22c55e"/>
+        <ProbBar label="P(above-avg starter)" value={p.probs.avgStarter||0} color="#4ade80"/>
+        <ProbBar label="P(retained yr 2)" value={p.probs.retained||0} color="#93c5fd"/>
+        <ProbBar label="P(pro opportunity)" value={p.probs.pro||0} color="#a78bfa"/>
+      </div>}
+      {tab==="notes"&&<div>
+        <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} placeholder="Add scouting observations…"
+          style={{width:"100%",minHeight:80,background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:8,padding:10,color:"#e2e8f0",fontFamily:"'DM Sans',sans-serif",fontSize:13,resize:"vertical",outline:"none",boxSizing:"border-box",marginBottom:8}}/>
+        <button onClick={()=>{if(!noteText.trim())return;onNote(p.id,{text:noteText,timestamp:new Date().toISOString()});setNoteText("");}}
+          style={{padding:"8px 20px",background:"rgba(246,173,85,.15)",border:"1px solid rgba(246,173,85,.3)",borderRadius:6,cursor:"pointer",color:"#f6ad55",fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,marginBottom:16}}>Add Note</button>
+        {playerNotes.length===0?<p style={{fontSize:13,color:"#4a5568",fontStyle:"italic"}}>No notes yet.</p>
+          :playerNotes.slice(0,3).map((n,i)=>(
+            <div key={i} style={{...S.card,marginBottom:8}}>
+              <div style={{fontSize:10,color:"#4a5568",marginBottom:4}}>{new Date(n.timestamp).toLocaleDateString()}</div>
+              <p style={{fontSize:12,color:"#94a3b8",margin:0,lineHeight:1.6}}>{n.text}</p>
+            </div>
+          ))
+        }
+      </div>}
+    </div>
+  </div>;
+}
+
+function App(){
+  const[players,setPlayers]=useState(DEMO_PLAYERS);
+  const[dataSource,setDataSource]=useState("demo");
+  const[search,setSearch]=useState("");
+  const[sortCol,setSortCol]=useState("gemScore");
+  const[sortDir,setSortDir]=useState("desc");
+  const[selected,setSelected]=useState(null);
+  const[view,setView]=useState("board");
+  const[posFilter,setPosFilter]=useState([]);
+  const[confFilter,setConfFilter]=useState([]);
+  const[cmdOpen,setCmdOpen]=useState(false);
+  const[cmdQ,setCmdQ]=useState("");
+  const[watchlist,setWatchlist]=useLocalStorage("dbp_watchlist",[]);
+  const[notes,setNotes]=useLocalStorage("dbp_notes",{});
+  const[settings,setSettings]=useLocalStorage("dbp_settings",{headCoach:"",programName:"",targetLevel:"C-USA"});
+
+  useEffect(()=>{
+    if(!SHEETDB_URL.includes("REPLACE_WITH_YOUR_ID")){
+      fetch(SHEETDB_URL)
+        .then(r=>r.json())
+        .then(rows=>{setPlayers(rows.map(parsePlayer));setDataSource("live");})
+        .catch(()=>{});
+    }
+  },[]);
+
+  useEffect(()=>{
+    const h=(e)=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmdOpen(o=>!o);}if(e.key==="Escape"){setSelected(null);setCmdOpen(false);}};
+    window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);
+  },[]);
+
+  const onWatch=(id)=>setWatchlist(w=>w.includes(id)?w.filter(x=>x!==id):[...w,id]);
+  const onNote=(pid,note)=>setNotes(n=>({...n,[pid]:[...(n[pid]||[]),note]}));
+
+  const filtered=useMemo(()=>{
+    let p=[...players];
+    if(search){const q=search.toLowerCase();p=p.filter(x=>x.name.toLowerCase().includes(q)||x.school.toLowerCase().includes(q)||x.pos.toLowerCase().includes(q));}
+    if(posFilter.length)p=p.filter(x=>posFilter.includes(x.pos));
+    if(confFilter.length)p=p.filter(x=>confFilter.includes(x.conf));
+    p.sort((a,b)=>{
+      const va=sortCol==="stat"?(getMainStat(a)??-99):(a[sortCol]??-99);
+      const vb=sortCol==="stat"?(getMainStat(b)??-99):(b[sortCol]??-99);
+      return(va-vb)*(sortDir==="desc"?-1:1);
+    });
+    return p;
+  },[players,search,posFilter,confFilter,sortCol,sortDir]);
+
+  const selPlayer=useMemo(()=>selected?players.find(p=>p.id===selected):null,[selected,players]);
+  const cmdResults=useMemo(()=>{if(!cmdQ.trim())return[];const q=cmdQ.toLowerCase();return players.filter(p=>p.name.toLowerCase().includes(q)||p.school.toLowerCase().includes(q)).slice(0,8);},[cmdQ,players]);
+
+  const thS=(col)=>({padding:"0 8px 8px",fontSize:10,fontWeight:600,letterSpacing:".08em",color:sortCol===col?"#f6ad55":"#4a5568",textTransform:"uppercase",textAlign:"right",cursor:"pointer",background:"#0f1623",position:"sticky",top:0,zIndex:2,whiteSpace:"nowrap",userSelect:"none"});
+  const onSort=(col)=>{if(sortCol===col)setSortDir(d=>d==="desc"?"asc":"desc");else{setSortCol(col);setSortDir("desc");}};
+
+  return <div style={{minHeight:"100vh",background:"#0c111b",color:"#e2e8f0",fontFamily:"'DM Sans','Helvetica Neue',sans-serif",display:"flex",flexDirection:"column"}}>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+
+    {/* NAV */}
+    <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:52,borderBottom:"1px solid rgba(255,255,255,.07)",background:"#0a0f1a",position:"sticky",top:0,zIndex:10,flexShrink:0}}>
+      <div style={{display:"flex",alignItems:"center",gap:16}}>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:2,color:"#f6ad55"}}>DRAFTBOARD<span style={{color:"#4a5568",marginLeft:2}}>PRO</span></div>
+        <div style={{width:1,height:20,background:"rgba(255,255,255,.08)"}}/>
+        {["board","watchlist","conferences"].map(v=>(
+          <button key={v} onClick={()=>setView(v)} style={{background:view===v?"rgba(246,173,85,.08)":"none",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:13,padding:"6px 10px",borderRadius:4,color:view===v?"#f6ad55":"#718096"}}>
+            {v==="board"?"Scout Board":v==="watchlist"?`Watchlist (${watchlist.length})`:"Conferences"}
+          </button>
+        ))}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        {dataSource==="live"&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#4ade80"}}>● LIVE DATA</span>}
+        {dataSource==="demo"&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#f6ad55"}}>● DEMO</span>}
+        <button onClick={()=>setCmdOpen(true)} style={{background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:6,cursor:"pointer",color:"#718096",fontFamily:"'DM Mono',monospace",fontSize:11,padding:"4px 10px"}}>⌘K</button>
+        <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#f6ad55,#ed8936)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#0c111b",fontFamily:"'DM Mono',monospace"}}>
+          {(settings.headCoach||"C").charAt(0).toUpperCase()}
+        </div>
+      </div>
+    </nav>
+
+    <main style={{display:"flex",flex:1,overflow:"hidden"}}>
+
+      {/* SCOUT BOARD */}
+      {view==="board"&&<div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{padding:"10px 16px",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",background:"#0c111b",flexShrink:0}}>
+          <input type="search" placeholder="Search player or school…" value={search} onChange={e=>setSearch(e.target.value)}
+            style={{width:200,background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.08)",color:"#e2e8f0",borderRadius:6,padding:"6px 10px",fontFamily:"'DM Sans',sans-serif",fontSize:13}}/>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            {["SP","RP","C","1B","2B","3B","SS","LF","CF","RF"].map(pos=>(
+              <button key={pos} onClick={()=>setPosFilter(f=>f.includes(pos)?f.filter(x=>x!==pos):[...f,pos])}
+                style={{padding:"3px 8px",borderRadius:3,fontSize:11,fontWeight:600,cursor:"pointer",background:posFilter.includes(pos)?"rgba(246,173,85,.15)":"rgba(255,255,255,.04)",border:posFilter.includes(pos)?"1px solid rgba(246,173,85,.4)":"1px solid rgba(255,255,255,.08)",color:posFilter.includes(pos)?"#f6ad55":"#718096",fontFamily:"'DM Mono',monospace"}}>
+                {pos}
+              </button>
+            ))}
+          </div>
+          <span style={{fontSize:12,color:"#4a5568",marginLeft:"auto"}}>{filtered.length} of {players.length} players</span>
+        </div>
+        <div style={{overflowY:"auto",flex:1,overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
+            <thead>
+              <tr>
+                <th style={{...thS("name"),textAlign:"left",padding:"0 8px 8px"}} onClick={()=>onSort("name")}>Player</th>
+                <th style={thS("stat")} onClick={()=>onSort("stat")}>JUCO</th>
+                <th style={thS("projStat")} onClick={()=>onSort("projStat")}>Proj C-USA</th>
+                <th style={{...thS("gemScore"),color:sortCol==="gemScore"?"#f6ad55":"#4a5568"}} onClick={()=>onSort("gemScore")}>Gem {sortCol==="gemScore"?sortDir==="desc"?"↓":"↑":""}</th>
+                <th style={thS("riskScore")} onClick={()=>onSort("riskScore")}>Risk</th>
+                <th style={thS("surplus")} onClick={()=>onSort("surplus")}>Surplus</th>
+                <th style={{...thS(""),cursor:"default"}}>Status</th>
+                <th style={{...thS(""),cursor:"default",textAlign:"center"}}>★</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length===0?<tr><td colSpan={8} style={{padding:"40px",textAlign:"center",fontSize:14,color:"#4a5568"}}>No players match your filters.</td></tr>
+                :filtered.map(p=>{
+                  const mainStat=getMainStat(p),projStat=getProjStat(p),isERA=p.isPitcher;
+                  const statColor=mainStat!=null?(isERA?(mainStat<2.5?"#f6ad55":mainStat<3.5?"#a78bfa":"#e2e8f0"):(mainStat>1.0?"#f6ad55":mainStat>.900?"#a78bfa":"#e2e8f0")):"#e2e8f0";
+                  return <tr key={p.id} onClick={()=>setSelected(p.id)} tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&setSelected(p.id)}
+                    style={{borderBottom:"1px solid rgba(255,255,255,.04)",cursor:"pointer",background:selected===p.id?"rgba(246,173,85,.06)":"transparent"}}>
+                    <td style={{padding:"10px 8px",minWidth:200}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <Avatar name={p.name} size={28}/>
+                        <div>
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            <span style={{fontSize:13,fontWeight:500,color:"#e2e8f0"}}>{p.name}</span>
+                            {p.flag&&<Badge text={p.flag} type="flag"/>}
+                          </div>
+                          <div style={{fontSize:11,color:"#4a5568"}}>{p.pos} · {p.school} · {p.conf}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{padding:"10px 8px",textAlign:"right"}}>
+                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,fontWeight:500,color:statColor}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span>
+                      <div style={{fontSize:10,color:"#4a5568"}}>{getStatLabel(p)}</div>
+                    </td>
+                    <td style={{padding:"10px 8px",textAlign:"right"}}>
+                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,fontWeight:500,color:"#93c5fd"}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span>
+                    </td>
+                    <td style={{padding:"10px 8px",textAlign:"right"}}>
+                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:13,fontWeight:500,color:gemColor(p.gemScore)}}>{p.gemScore}</span>
+                      <div style={{height:3,borderRadius:2,background:"rgba(255,255,255,.08)",overflow:"hidden",marginTop:3,width:48,marginLeft:"auto"}}>
+                        <div style={{width:`${p.gemScore}%`,height:"100%",background:gemColor(p.gemScore)}}/>
+                      </div>
+                    </td>
+                    <td style={{padding:"10px 8px",textAlign:"right"}}>
+                      <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:riskColor(p.riskScore)}}>{p.riskScore} <span style={{fontSize:10,opacity:.7}}>{riskLabel(p.riskScore)}</span></span>
+                    </td>
+                    <td style={{padding:"10px 8px",textAlign:"right"}}><span style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"#a78bfa"}}>{fmtK(p.surplus)}</span></td>
+                    <td style={{padding:"10px 8px",textAlign:"center"}}><Badge text={p.status} type="status"/></td>
+                    <td style={{padding:"10px 8px",textAlign:"center",width:44}}>
+                      <button onClick={e=>{e.stopPropagation();onWatch(p.id);}} aria-label={`${watchlist.includes(p.id)?"Remove":"Add"} ${p.name}`}
+                        style={{background:"none",border:"none",cursor:"pointer",fontSize:16,color:watchlist.includes(p.id)?"#f6ad55":"#2d3748",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>★</button>
+                    </td>
+                  </tr>;
+                })
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>}
+
+      {/* WATCHLIST */}
+      {view==="watchlist"&&<div style={{padding:"24px 28px",overflowY:"auto",flex:1}}>
+        <h1 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,letterSpacing:1,color:"#e2e8f0",margin:"0 0 16px"}}>WATCHLIST</h1>
+        {watchlist.length===0?<p style={{fontSize:14,color:"#4a5568"}}>Your watchlist is empty. Star players on the Scout Board to track them here.</p>
+          :watchlist.map(id=>{const p=players.find(x=>x.id===id);if(!p)return null;return(
+            <div key={id} onClick={()=>{setSelected(id);setView("board");}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",marginBottom:6,background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.06)",borderRadius:8,cursor:"pointer"}}>
+              <Avatar name={p.name} size={32}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:500,color:"#e2e8f0"}}>{p.name}</div>
+                <div style={{fontSize:11,color:"#4a5568"}}>{p.pos} · {p.school} · {p.conf}</div>
+              </div>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:14,color:gemColor(p.gemScore)}}>{p.gemScore}</span>
+              <Badge text={p.status} type="status"/>
+              <button onClick={e=>{e.stopPropagation();onWatch(id);}} style={{background:"none",border:"none",cursor:"pointer",color:"#4a5568",fontSize:18,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+            </div>
+          );})
+        }
+      </div>}
+
+      {/* CONFERENCES */}
+      {view==="conferences"&&<div style={{padding:"24px 28px",overflowY:"auto",flex:1}}>
+        <h1 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,letterSpacing:1,color:"#e2e8f0",margin:"0 0 20px"}}>CONFERENCE RANKINGS</h1>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"1px solid rgba(255,255,255,.08)"}}>
+            {["Conference","Strength","Transfers","D1 Success","OPS Mult","ERA Mult"].map(h=><th key={h} scope="col" style={{fontSize:10,fontWeight:600,letterSpacing:".08em",color:"#4a5568",textTransform:"uppercase",padding:"0 12px 10px",textAlign:h==="Conference"?"left":"right"}}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {Object.entries(CONF_DATA).sort((a,b)=>b[1].rating-a[1].rating).map(([conf,d])=>(
+              <tr key={conf} style={{borderBottom:"1px solid rgba(255,255,255,.04)"}}>
+                <td style={{padding:"12px",fontSize:13,color:"#e2e8f0"}}>{conf}</td>
+                <td style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:500,textAlign:"right",padding:"12px",color:d.rating>=.88?"#f6ad55":d.rating>=.82?"#93c5fd":"#718096"}}>{d.rating.toFixed(2)}</td>
+                <td style={{fontFamily:"'DM Mono',monospace",fontSize:13,textAlign:"right",padding:"12px",color:"#94a3b8"}}>{d.transfers}</td>
+                <td style={{fontFamily:"'DM Mono',monospace",fontSize:13,textAlign:"right",padding:"12px",color:"#4ade80"}}>{d.d1Rate}%</td>
+                <td style={{fontFamily:"'DM Mono',monospace",fontSize:13,textAlign:"right",padding:"12px",color:"#a5b4fc"}}>{d.opsMult.toFixed(3)}</td>
+                <td style={{fontFamily:"'DM Mono',monospace",fontSize:13,textAlign:"right",padding:"12px",color:"#a5b4fc"}}>{d.eraMult.toFixed(3)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>}
+
+      {/* PLAYER DETAIL */}
+      {selPlayer&&<PlayerDetail player={selPlayer} onClose={()=>setSelected(null)} watched={watchlist.includes(selPlayer.id)} onWatch={onWatch} notes={notes} onNote={onNote}/>}
+    </main>
+
+    {/* COMMAND PALETTE */}
+    {cmdOpen&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:300,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"80px 20px"}} onClick={e=>e.target===e.currentTarget&&setCmdOpen(false)}>
+      <div style={{background:"#0f1623",border:"1px solid rgba(255,255,255,.1)",borderRadius:12,width:"100%",maxWidth:520,overflow:"hidden"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+          <input autoFocus value={cmdQ} onChange={e=>setCmdQ(e.target.value)} placeholder="Search players…"
+            style={{flex:1,background:"none",border:"none",color:"#e2e8f0",fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:"none"}}
+            onKeyDown={e=>e.key==="Escape"&&setCmdOpen(false)}/>
+          <kbd style={{fontSize:11,color:"#4a5568",border:"1px solid rgba(255,255,255,.1)",borderRadius:4,padding:"2px 6px",fontFamily:"'DM Mono',monospace"}}>ESC</kbd>
+        </div>
+        {cmdQ.trim()===""?<p style={{padding:"20px 16px",fontSize:13,color:"#4a5568",margin:0}}>Type to search {players.length} players…</p>
+          :cmdResults.length===0?<p style={{padding:"20px 16px",fontSize:13,color:"#4a5568",margin:0}}>No results.</p>
+          :cmdResults.map(p=>(
+            <div key={p.id} onClick={()=>{setSelected(p.id);setView("board");setCmdOpen(false);setCmdQ("");}}
+              style={{display:"flex",alignItems:"center",gap:10,padding:"8px 16px",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.04)"}}>
+              <Avatar name={p.name} size={28}/>
+              <div style={{flex:1}}><div style={{fontSize:13,color:"#e2e8f0"}}>{p.name}</div><div style={{fontSize:11,color:"#4a5568"}}>{p.pos} · {p.school}</div></div>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,padding:"2px 8px",borderRadius:3,background:"rgba(255,255,255,.05)",color:gemColor(p.gemScore)}}>{p.gemScore}</span>
+              <Badge text={p.status} type="status"/>
+            </div>
+          ))
+        }
+      </div>
+    </div>}
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
