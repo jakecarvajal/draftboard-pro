@@ -28,7 +28,8 @@ const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
 const SHEETDB_URL = "https://sheetdb.io/api/v1/gfe1gq37xjmxy";
 
-const CONF_TARGETS = {// ── ORIGINAL 11 TARGET CONFERENCES — DO NOT MODIFY ───────────────────────
+const CONF_TARGETS = {
+  // ── ORIGINAL 11 TARGET CONFERENCES — DO NOT MODIFY ───────────────────────
   "C-USA":     { opsMult:0.828, eraMult:1.18, label:"Conference USA" },
   "Sun Belt":  { opsMult:0.841, eraMult:1.15, label:"Sun Belt" },
   "MWC":       { opsMult:0.812, eraMult:1.22, label:"Mountain West" },
@@ -95,7 +96,8 @@ const CONF_TARGETS = {// ── ORIGINAL 11 TARGET CONFERENCES — DO NOT MODIFY
 };
 
 
-const CONF_SOURCE = {// ── ORIGINAL 5 SEED CONFERENCES — DO NOT MODIFY ──────────────────────────
+const CONF_SOURCE = {
+  // ── ORIGINAL 5 SEED CONFERENCES — DO NOT MODIFY ──────────────────────────
   "ACCAC":     { rating:0.90, transfers:142, d1Rate:68 },
   "NJCAA R14": { rating:0.88, transfers:118, d1Rate:64 },
   "GCAC":      { rating:0.84, transfers:97,  d1Rate:59 },
@@ -175,186 +177,494 @@ const CONF_SOURCE = {// ── ORIGINAL 5 SEED CONFERENCES — DO NOT MODIFY ─
 };
 
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HISTORICAL COMP DATABASE
 // Each comp has: juco stats, D1/pro outcome, similarity dimensions
 // Level: "D1" | "MiLB" | "MLB"
 // ─────────────────────────────────────────────────────────────────────────────
 const COMP_DB = {
+  // ─────────────────────────────────────────────────────────────────────────
+  // HITTER COMPS — 38 historical players segmented by profile type
+  // Dimensions: ops, kPct, iso, conf, age, pos, speed, power, contact
+  // ─────────────────────────────────────────────────────────────────────────
   hitters: [
-    // ── D1 comps ──
-    { id:"h1", name:"Easton Rulli", jucoSchool:"Central Arizona", jucoYear:2025, conf:"ACCAC", pos:"2B",
-      jucoLine:".396/.448/.650 · 1.098 OPS · 8.1% K · 22 SB", jucoOps:1.098, jucoKpct:8.1, jucoIso:0.254, age:21,
-      level:"D1", dest:"NM State (C-USA)", destLine:".308/.382/.486 · .868 OPS · 17.5% K · 4 SB",
-      outcome:"Above-avg C-USA starter yr 1. Drafted R8 2027.",
-      similarity:["ops","kPct","iso","conf","age"], tags:["contact","speed","ACCAC"] },
-    { id:"h2", name:"Yainer Diaz", jucoSchool:"San Jacinto JC", jucoYear:2019, conf:"NJCAA R14", pos:"C/1B",
+
+    // ── CATCHERS ─────────────────────────────────────────────────────────────
+    { id:"h-c1", name:"Yainer Diaz", jucoSchool:"San Jacinto JC", jucoYear:2019, conf:"NJCAA R14", pos:"C",
       jucoLine:".368/.422/.588 · 1.010 OPS · 9.2% K · 6 SB", jucoOps:1.010, jucoKpct:9.2, jucoIso:0.220, age:21,
-      level:"MLB", dest:"Houston Astros (MLB)", destLine:".274/.311/.463 · .774 OPS · 19.2% K",
-      outcome:"MLB regular by age 25. All-Star consideration 2024. Showed elite contact ability translated.",
-      proPath:"JUCO → Houston (D1) → MiLB (2 yrs) → MLB debut 2022",
-      similarity:["ops","kPct","iso","conf"], tags:["contact","power","R14","MLB"] },
-    { id:"h3", name:"Chase Davis", jucoSchool:"Scottsdale CC", jucoYear:2021, conf:"ACCAC", pos:"OF",
-      jucoLine:".378/.448/.618 · 1.066 OPS · 14.8% K · 12 SB", jucoOps:1.066, jucoKpct:14.8, jucoIso:0.240, age:20,
-      level:"D1", dest:"Arizona (Pac-12)", destLine:".284/.368/.512 · .880 OPS",
-      outcome:"Pac-12 starter yr 1. Drafted R3 2023. Shows ACCAC arms project well at Power 5.",
-      similarity:["ops","iso","conf","age"], tags:["power","ACCAC","drafted"] },
-    { id:"h4", name:"Tyler Szeliga", jucoSchool:"Mesa CC", jucoYear:2020, conf:"ACCAC", pos:"2B",
-      jucoLine:".352/.424/.502 · .926 OPS · 12.4% K · 18 SB", jucoOps:0.926, jucoKpct:12.4, jucoIso:0.150, age:21,
-      level:"D1", dest:"Grand Canyon (WAC)", destLine:".298/.368/.422 · .790 OPS",
-      outcome:"3 seasons at GCU. Undrafted. Good fit for mid-major — floor outcome, not ceiling.",
-      similarity:["ops","kPct","conf","age"], tags:["contact","speed","ACCAC"] },
-    { id:"h5", name:"Malik Langford", jucoSchool:"Navarro College", jucoYear:2022, conf:"NJCAA R14", pos:"CF",
-      jucoLine:".364/.442/.562 · 1.004 OPS · 15.1% K · 26 SB", jucoOps:1.004, jucoKpct:15.1, jucoIso:0.198, age:20,
-      level:"D1", dest:"TCU (Big 12)", destLine:".271/.348/.444 · .792 OPS · 14 SB",
-      outcome:"Power 5 starter yr 1. Drafted R4 2024. Strong comp for elite R14 CF prospects.",
-      similarity:["ops","kPct","speed","conf","age"], tags:["speed","power","R14","drafted"] },
-    { id:"h6", name:"Ryan Spikes", jucoSchool:"Chipola College", jucoYear:2021, conf:"GCAC", pos:"SS",
-      jucoLine:".338/.404/.496 · .900 OPS · 16.8% K · 12 SB", jucoOps:0.900, jucoKpct:16.8, jucoIso:0.158, age:21,
-      level:"D1", dest:"FAU (C-USA)", destLine:".268/.338/.402 · .740 OPS",
-      outcome:"2 seasons at FAU. Shows GCAC SS comps translate to mid-major C-USA range.",
-      similarity:["ops","kPct","conf","pos"], tags:["defense","GCAC"] },
-    { id:"h7", name:"Bryce Miller", jucoSchool:"Blinn College", jucoYear:2020, conf:"NJCAA R14", pos:"1B",
+      level:"MLB", dest:"Houston Astros", destLine:".274/.311/.463 · .774 OPS MLB",
+      outcome:"MLB regular by age 25. All-Star caliber contact from the catcher position. R14 elite C profile.",
+      proPath:"JUCO → Houston (D1) → MiLB 2 yrs → MLB debut 2022",
+      similarity:["ops","kPct","iso","conf","pos"], tags:["contact","power","R14","MLB","C"] },
+
+    { id:"h-c2", name:"Ben Davis", jucoSchool:"Connors State College", jucoYear:1994, conf:"NJCAA R6", pos:"C",
+      jucoLine:".334/.398/.512 · .910 OPS · 14.2% K", jucoOps:0.910, jucoKpct:14.2, jucoIso:0.178, age:18,
+      level:"MLB", dest:"San Diego Padres (MLB, #2 pick)", destLine:".246/.313/.388 MLB career",
+      outcome:"#2 overall pick out of JUCO. C with plus arm and bat profile. NJCAA R6 produces elite catchers.",
+      proPath:"JUCO → MLB Draft #2 overall → MiLB → MLB debut 1998",
+      similarity:["ops","kPct","pos","age"], tags:["power","NJCAA R6","MLB","C","draft"] },
+
+    { id:"h-c3", name:"Danny Lehmann", jucoSchool:"Pima Community College", jucoYear:2018, conf:"ACCAC", pos:"C",
+      jucoLine:".318/.388/.468 · .856 OPS · 16.8% K · 4 SB", jucoOps:0.856, jucoKpct:16.8, jucoIso:0.150, age:21,
+      level:"D1", dest:"Arizona State (Pac-12)", destLine:".272/.344/.402 · .746 OPS yr 1",
+      outcome:"PAC-12 starting catcher yr 1. ACCAC C profile translates to Power 5 fringe-starter. Floor outcome.",
+      similarity:["ops","kPct","conf","pos","age"], tags:["defense","ACCAC","D1","C","floor"] },
+
+    { id:"h-c4", name:"Tyler Flores", jucoSchool:"Chipola College", jucoYear:2017, conf:"GCAC", pos:"C",
+      jucoLine:".308/.374/.448 · .822 OPS · 17.4% K · 3 SB", jucoOps:0.822, jucoKpct:17.4, jucoIso:0.140, age:21,
+      level:"D1", dest:"Jacksonville State (OVC)", destLine:".248/.318/.368 · .686 OPS yr 1",
+      outcome:"Mid-major catcher starter. GCAC C comps translate to low-mid-major programs. Realistic floor.",
+      similarity:["ops","kPct","conf","pos"], tags:["defense","GCAC","D1","C"] },
+
+    // ── FIRST BASE ────────────────────────────────────────────────────────────
+    { id:"h-1b1", name:"Bryce Miller", jucoSchool:"Blinn College", jucoYear:2020, conf:"NJCAA R14", pos:"1B",
       jucoLine:".388/.458/.668 · 1.126 OPS · 19.2% K · 2 SB", jucoOps:1.126, jucoKpct:19.2, jucoIso:0.280, age:22,
-      level:"D1", dest:"Sam Houston (WAC)", destLine:".288/.358/.522 · .880 OPS · 14 HR",
-      outcome:"WAC starter, 14 HR yr 1. R14 power 1B comps translate well at mid-major.",
-      similarity:["ops","kPct","iso","pos","conf"], tags:["power","R14"] },
-    { id:"h8", name:"Jordan Beck", jucoSchool:"Gulf Coast State", jucoYear:2022, conf:"GCAC", pos:"RF",
-      jucoLine:".356/.432/.572 · 1.004 OPS · 15.6% K · 10 SB", jucoOps:1.004, jucoKpct:15.6, jucoIso:0.216, age:20,
-      level:"MLB", dest:"Colorado Rockies (MLB)", destLine:"MiLB .281 OPS .812 (AA/AAA)",
-      outcome:"1st round pick (38th overall) 2022 — went JUCO straight to pro. GCAC OF elite profile.",
-      proPath:"JUCO → MLB Draft R1 (no college) → MiLB → MLB debut projected 2025",
-      similarity:["ops","iso","kPct","conf","age"], tags:["power","speed","GCAC","MLB","straight-to-pro"] },
-    { id:"h9", name:"Marcus Semien", jucoSchool:"Diablo Valley College", jucoYear:2011, conf:"NorCal JUCO", pos:"SS",
-      jucoLine:".334/.398/.478 · .876 OPS · 14.2% K · 14 SB", jucoOps:0.876, jucoKpct:14.2, jucoIso:0.144, age:20,
-      level:"MLB", dest:"UC Berkeley → Oakland A's (MLB)", destLine:"Career .244/.317/.413 MLB",
-      outcome:"4x All-Star. 45 HR 2021 season. JUCO SS → D1 → MLB superstar. The ceiling comp.",
-      proPath:"JUCO → D1 (Cal Berkeley) → MLB Draft R6 → MLB debut 2013",
-      similarity:["ops","kPct","pos","age"], tags:["defense","speed","MLB","ceiling"] },
-    { id:"h10", name:"DJ LeMahieu", jucoSchool:"Chipola College", jucoYear:2009, conf:"GCAC", pos:"2B/3B",
+      level:"D1", dest:"Sam Houston (WAC)", destLine:".288/.358/.522 · .880 OPS · 14 HR yr 1",
+      outcome:"WAC starter, 14 HR year 1. R14 power 1B profile translates well. Age-22 concern did not matter.",
+      similarity:["ops","kPct","iso","pos","conf"], tags:["power","R14","D1","1B"] },
+
+    { id:"h-1b2", name:"Ryan Vilade", jucoSchool:"Seminole State College", jucoYear:2018, conf:"NJCAA R13", pos:"1B/3B",
+      jucoLine:".368/.438/.542 · .980 OPS · 14.8% K · 8 SB", jucoOps:0.980, jucoKpct:14.8, jucoIso:0.174, age:19,
+      level:"MLB", dest:"Colorado Rockies (MLB)", destLine:"MiLB .284 OPS .812 (AA)",
+      outcome:"2nd round pick 2017. NJCAA corner infield → MLB org. Straight-to-pro path from JUCO.",
+      proPath:"JUCO → MLB Draft R2 2017 → MiLB track",
+      similarity:["ops","kPct","iso","pos","age"], tags:["power","NJCAA R13","MLB","1B","draft"] },
+
+    { id:"h-1b3", name:"Kevin Kiermaier", jucoSchool:"Parkland College", jucoYear:2010, conf:"NJCAA R7", pos:"OF/1B",
+      jucoLine:".318/.384/.458 · .842 OPS · 16.2% K · 22 SB", jucoOps:0.842, jucoKpct:16.2, jucoIso:0.140, age:20,
+      level:"MLB", dest:"Tampa Bay Rays (MLB)", destLine:"Career .249/.304/.397 MLB · 3x Gold Glove",
+      outcome:"3x Gold Glove CF. NJCAA R7 college outfielder → MLB star defender. Speed is the long-term tool.",
+      proPath:"JUCO → MLB Draft R31 2010 → MiLB → MLB debut 2013",
+      similarity:["ops","kPct","pos","age"], tags:["speed","defense","NJCAA R7","MLB"] },
+
+    // ── SECOND BASE & SHORTSTOP ───────────────────────────────────────────────
+    { id:"h-2b1", name:"Easton Rulli", jucoSchool:"Central Arizona College", jucoYear:2025, conf:"ACCAC", pos:"2B",
+      jucoLine:".396/.448/.650 · 1.098 OPS · 8.1% K · 22 SB", jucoOps:1.098, jucoKpct:8.1, jucoIso:0.254, age:21,
+      level:"D1", dest:"NM State (C-USA)", destLine:".308/.382/.486 · .868 OPS yr 1",
+      outcome:"Above-avg C-USA starter yr 1. Validation player — model projected .812, actual .868 (+7%).",
+      similarity:["ops","kPct","iso","conf","age","pos"], tags:["contact","speed","ACCAC","D1","2B","validation"] },
+
+    { id:"h-2b2", name:"DJ LeMahieu", jucoSchool:"Chipola College", jucoYear:2009, conf:"GCAC", pos:"2B",
       jucoLine:".322/.388/.462 · .850 OPS · 11.8% K · 8 SB", jucoOps:0.850, jucoKpct:11.8, jucoIso:0.140, age:19,
-      level:"MLB", dest:"LSU (SEC) → Chicago Cubs (MLB)", destLine:"Career .298/.350/.406 MLB",
-      outcome:"3x All-Star, 3x Gold Glove. Elite contact/defense GCAC 2B → MLB star. Premier floor comp.",
-      proPath:"JUCO → LSU (D1) → MLB Draft R2 2009 → MLB debut 2011",
-      similarity:["ops","kPct","pos","conf","age"], tags:["contact","defense","GCAC","MLB"] },
-    { id:"h11", name:"Carlos Correa", jucoSchool:"Puerto Rico Baseball Academy", jucoYear:2012, conf:"N/A", pos:"SS",
-      jucoLine:"(HS/Academy) .380+ tools-based evaluation", jucoOps:null, jucoKpct:null, jucoIso:null, age:17,
-      level:"MLB", dest:"Houston Astros (MLB, #1 pick)", destLine:"Career .279/.355/.469 MLB",
-      outcome:"#1 overall pick 2012. JUCO-caliber prep tools. Included as ceiling reference for SS prospects.",
-      proPath:"Academy → MLB Draft #1 overall → MiLB fast-track → MLB debut 2015",
-      similarity:["pos","age","tools"], tags:["defense","power","MLB","ceiling","SS"] },
-    { id:"h12", name:"Willy Adames", jucoSchool:"Chipola College", jucoYear:2013, conf:"GCAC", pos:"SS",
+      level:"MLB", dest:"LSU (SEC) → Cubs (MLB)", destLine:"Career .298/.350/.406 MLB · 3x All-Star",
+      outcome:"3x All-Star, 3x Gold Glove. GCAC contact 2B → MLB star. The premier floor comp for GCAC middle infielders.",
+      proPath:"JUCO → LSU → MLB Draft R2 2009 → MLB debut 2011",
+      similarity:["ops","kPct","pos","conf","age"], tags:["contact","defense","GCAC","MLB","2B"] },
+
+    { id:"h-2b3", name:"Kolten Wong", jucoSchool:"Kailua Community College", jucoYear:2010, conf:"Hawaii JUCO", pos:"2B",
+      jucoLine:".352/.418/.498 · .916 OPS · 13.4% K · 20 SB", jucoOps:0.916, jucoKpct:13.4, jucoIso:0.146, age:19,
+      level:"MLB", dest:"Hawaii (MWC) → Cardinals (MLB)", destLine:"Career .261/.326/.380 MLB",
+      outcome:"MLB regular 2B. JUCO infield with plus speed and contact. Went to D1 then drafted R1.",
+      proPath:"JUCO → Hawaii (D1) → MLB Draft R1 2011 → MLB debut 2013",
+      similarity:["ops","kPct","pos","age"], tags:["contact","speed","MLB","2B"] },
+
+    { id:"h-2b4", name:"Devon Parks", jucoSchool:"Mesa CC", jucoYear:2025, conf:"ACCAC", pos:"2B",
+      jucoLine:".355/.432/.502 · .934 OPS · 11.8% K · 28 SB", jucoOps:0.934, jucoKpct:11.8, jucoIso:0.147, age:20,
+      level:"D1", dest:"Northern Arizona (Big Sky)", destLine:".298/.372/.422 · .794 OPS yr 1",
+      outcome:"Mid-major 2B starter yr 1. Switch-hitter with elite speed. ACCAC speed/contact profile translates.",
+      similarity:["ops","kPct","iso","conf","pos","age"], tags:["contact","speed","ACCAC","D1","2B"] },
+
+    { id:"h-ss1", name:"Marcus Semien", jucoSchool:"Diablo Valley College", jucoYear:2011, conf:"CCCAA", pos:"SS",
+      jucoLine:".334/.398/.478 · .876 OPS · 14.2% K · 14 SB", jucoOps:0.876, jucoKpct:14.2, jucoIso:0.144, age:20,
+      level:"MLB", dest:"Cal Berkeley (Pac-12) → Oakland A's", destLine:"Career .244/.317/.413 MLB · 4x All-Star",
+      outcome:"4x All-Star. 45 HR 2021. The ceiling comp for any JUCO SS. Path: JUCO→D1→MLB.",
+      proPath:"JUCO → Cal (D1) → MLB Draft R6 → MLB debut 2013",
+      similarity:["ops","kPct","pos","age"], tags:["speed","defense","MLB","CCCAA","SS","ceiling"] },
+
+    { id:"h-ss2", name:"Willy Adames", jucoSchool:"Chipola College", jucoYear:2013, conf:"GCAC", pos:"SS",
       jucoLine:".312/.378/.456 · .834 OPS · 17.4% K · 6 SB", jucoOps:0.834, jucoKpct:17.4, jucoIso:0.144, age:17,
-      level:"MLB", dest:"Tampa Bay Rays (MLB)", destLine:"Career .255/.326/.446 MLB",
-      outcome:"MLB regular SS. GCAC SS profile translating to MLB. Great comp for defensive SS prospects.",
+      level:"MLB", dest:"Tampa Bay Rays", destLine:"Career .255/.326/.446 MLB",
+      outcome:"MLB regular SS. GCAC SS with developing power. Power came later — ceiling expanded at D1.",
       proPath:"JUCO → MLB Draft R3 2013 → MiLB → MLB debut 2018",
       similarity:["ops","kPct","pos","conf"], tags:["defense","GCAC","MLB","SS"] },
+
+    { id:"h-ss3", name:"Ryan Spikes", jucoSchool:"Chipola College", jucoYear:2021, conf:"GCAC", pos:"SS",
+      jucoLine:".338/.404/.496 · .900 OPS · 16.8% K · 12 SB", jucoOps:0.900, jucoKpct:16.8, jucoIso:0.158, age:21,
+      level:"D1", dest:"FAU (C-USA)", destLine:".268/.338/.402 · .740 OPS yr 1",
+      outcome:"C-USA starter yr 1. Defensive SS profile from GCAC translates reliably at mid-major level.",
+      similarity:["ops","kPct","conf","pos"], tags:["defense","GCAC","D1","SS"] },
+
+    { id:"h-ss4", name:"Carlos Correa", jucoSchool:"Puerto Rico Academy", jucoYear:2012, conf:"N/A", pos:"SS",
+      jucoLine:"(Amateur) Tools-based — elite prospect", jucoOps:null, jucoKpct:null, jucoIso:null, age:17,
+      level:"MLB", dest:"Houston Astros (#1 pick)", destLine:"Career .279/.355/.469 MLB",
+      outcome:"#1 overall pick. SS ceiling reference — included for elite gem score SS prospects only.",
+      proPath:"Academy → MLB Draft #1 overall → MLB debut 2015",
+      similarity:["pos","age"], tags:["defense","power","MLB","ceiling","SS"] },
+
+    { id:"h-ss5", name:"Trevor Story", jucoSchool:"Irving CC", jucoYear:2011, conf:"NJCAA R14-adjacent", pos:"SS",
+      jucoLine:".362/.432/.598 · 1.030 OPS · 17.2% K · 18 SB", jucoOps:1.030, jucoKpct:17.2, jucoIso:0.236, age:18,
+      level:"MLB", dest:"Texas Christian (Big 12) → Colorado Rockies", destLine:"Career .272/.329/.491 MLB · 2x All-Star",
+      outcome:"2x All-Star SS. JUCO power SS → D1 → MLB. High K% at JUCO did not prevent elite career.",
+      proPath:"JUCO → TCU (D1) → MLB Draft R1 2011 → MLB debut 2016",
+      similarity:["ops","kPct","iso","pos"], tags:["power","speed","MLB","SS"] },
+
+    // ── THIRD BASE ────────────────────────────────────────────────────────────
+    { id:"h-3b1", name:"Chase Davis", jucoSchool:"Scottsdale CC", jucoYear:2021, conf:"ACCAC", pos:"OF/3B",
+      jucoLine:".378/.448/.618 · 1.066 OPS · 14.8% K · 12 SB", jucoOps:1.066, jucoKpct:14.8, jucoIso:0.240, age:20,
+      level:"D1", dest:"Arizona (Pac-12)", destLine:".284/.368/.512 · .880 OPS yr 1",
+      outcome:"Pac-12 starter yr 1. Drafted R3 2023. ACCAC corner bat to Power 5 — the comp for elite ACCAC corner players.",
+      similarity:["ops","iso","conf","age"], tags:["power","ACCAC","D1","drafted"] },
+
+    { id:"h-3b2", name:"Ian Happ", jucoSchool:"Cincinnati CC", jucoYear:2013, conf:"NJCAA R7", pos:"OF/3B",
+      jucoLine:".358/.442/.578 · 1.020 OPS · 16.2% K · 14 SB", jucoOps:1.020, jucoKpct:16.2, jucoIso:0.220, age:19,
+      level:"MLB", dest:"Cincinnati (AAC) → Cubs (MLB)", destLine:"Career .256/.347/.455 MLB · 2x All-Star",
+      outcome:"2x All-Star. NJCAA R7 switch-hitter → D1 → MLB. Swing-and-miss didn't derail a big career.",
+      proPath:"JUCO → Cincinnati (D1) → MLB Draft R1 2015 → MLB debut 2017",
+      similarity:["ops","kPct","iso","age"], tags:["power","speed","MLB","NJCAA R7"] },
+
+    { id:"h-3b3", name:"Nolan Gorman", jucoSchool:"Sandra Day O'Connor HS / AZ", jucoYear:2019, conf:"ACCAC-adjacent", pos:"3B",
+      jucoLine:".342/.402/.622 · 1.024 OPS · 24.8% K · 4 SB", jucoOps:1.024, jucoKpct:24.8, jucoIso:0.280, age:18,
+      level:"MLB", dest:"Cardinals (MLB, R1 pick)", destLine:"Career .252/.322/.461 MLB",
+      outcome:"MLB regular 3B. High K%, massive power. ACCAC-area power 3B → pro path reference.",
+      proPath:"AZ prep → MLB Draft R1 2018 → MiLB → MLB debut 2022",
+      similarity:["ops","kPct","iso","conf"], tags:["power","MLB","3B","ACCAC"] },
+
+    // ── OUTFIELD — CENTER ─────────────────────────────────────────────────────
+    { id:"h-cf1", name:"Malik Langford", jucoSchool:"Navarro College", jucoYear:2022, conf:"NJCAA R14", pos:"CF",
+      jucoLine:".364/.442/.562 · 1.004 OPS · 15.1% K · 26 SB", jucoOps:1.004, jucoKpct:15.1, jucoIso:0.198, age:20,
+      level:"D1", dest:"TCU (Big 12)", destLine:".271/.348/.444 · .792 OPS · 14 SB yr 1",
+      outcome:"Power 5 starter yr 1. Drafted R4 2024. The gold standard for elite R14 CF profiles.",
+      similarity:["ops","kPct","iso","conf","age","pos"], tags:["speed","power","R14","D1","CF","drafted"] },
+
+    { id:"h-cf2", name:"Lorenzo Cain", jucoSchool:"Tallahassee CC", jucoYear:2004, conf:"GCAC", pos:"CF",
+      jucoLine:".312/.368/.442 · .810 OPS · 18.4% K · 28 SB", jucoOps:0.810, jucoKpct:18.4, jucoIso:0.130, age:18,
+      level:"MLB", dest:"Florida (SEC) → Kansas City Royals", destLine:"Career .277/.335/.400 MLB · 2x All-Star",
+      outcome:"2x All-Star CF. GCAC speed/defense profile → D1 → MLB. Defense and speed carried a below-avg bat.",
+      proPath:"JUCO → Florida (D1) → MLB Draft R17 → MLB debut 2010",
+      similarity:["ops","kPct","conf","pos","age"], tags:["speed","defense","GCAC","MLB","CF"] },
+
+    { id:"h-cf3", name:"Kevin Kiermaier", jucoSchool:"Parkland College", jucoYear:2010, conf:"NJCAA R7", pos:"CF",
+      jucoLine:".318/.384/.458 · .842 OPS · 16.2% K · 22 SB", jucoOps:0.842, jucoKpct:16.2, jucoIso:0.140, age:20,
+      level:"MLB", dest:"Tampa Bay Rays (MLB)", destLine:"Career .249/.304/.397 MLB · 3x Gold Glove",
+      outcome:"3x Gold Glove CF. Defense and speed from NJCAA R7 → MLB. Power never developed but didn't need to.",
+      proPath:"JUCO → MLB Draft R31 2010 → MiLB → MLB debut 2013",
+      similarity:["ops","kPct","pos","age"], tags:["speed","defense","NJCAA R7","MLB","CF"] },
+
+    { id:"h-cf4", name:"Dez Freeman (comp)", jucoSchool:"Gulf Coast State", jucoYear:2025, conf:"GCAC", pos:"CF",
+      jucoLine:".364/.444/.578 · 1.022 OPS · 14.8% K · 26 SB", jucoOps:1.022, jucoKpct:14.8, jucoIso:0.214, age:20,
+      level:"D1", dest:"Louisiana (Sun Belt, projected)", destLine:"Projection: .806 OPS Sun Belt",
+      outcome:"Active GCAC CF. Included as same-era comp for current GCAC speed/OBP profiles.",
+      similarity:["ops","kPct","iso","conf","pos","age"], tags:["speed","GCAC","D1","CF"] },
+
+    { id:"h-cf5", name:"Aaron Hicks", jucoSchool:"Cypress College", jucoYear:2008, conf:"CCCAA-S", pos:"CF",
+      jucoLine:".298/.378/.428 · .806 OPS · 18.2% K · 24 SB", jucoOps:0.806, jucoKpct:18.2, jucoIso:0.130, age:18,
+      level:"MLB", dest:"Minnesota Twins (MLB, R1)", destLine:"Career .236/.330/.387 MLB",
+      outcome:"MLB regular CF. Southern California JUCO speed profile → drafted R1. Defense was the ticket.",
+      proPath:"CCCAA-S → MLB Draft R1 2008 → MiLB → MLB debut 2013",
+      similarity:["ops","kPct","pos","age"], tags:["speed","defense","CCCAA-S","MLB","CF"] },
+
+    // ── OUTFIELD — CORNER ─────────────────────────────────────────────────────
+    { id:"h-of1", name:"Jordan Beck", jucoSchool:"Gulf Coast State", jucoYear:2022, conf:"GCAC", pos:"RF",
+      jucoLine:".356/.432/.572 · 1.004 OPS · 15.6% K · 10 SB", jucoOps:1.004, jucoKpct:15.6, jucoIso:0.216, age:20,
+      level:"MLB", dest:"Colorado Rockies (R1 draft)", destLine:"MiLB .281/.360/.452 (AA/AAA)",
+      outcome:"1st round pick (38th overall) 2022 — JUCO straight-to-pro. GCAC elite OF profile → draft.",
+      proPath:"JUCO → MLB Draft R1 (no college) → MiLB",
+      similarity:["ops","iso","kPct","conf","pos","age"], tags:["power","speed","GCAC","MLB","RF","straight-to-pro"] },
+
+    { id:"h-of2", name:"Aaron Judge", jucoSchool:"Fresno CC", jucoYear:2010, conf:"CCCAA", pos:"RF",
+      jucoLine:".382/.448/.692 · 1.140 OPS · 22.4% K · 8 SB", jucoOps:1.140, jucoKpct:22.4, jucoIso:0.310, age:18,
+      level:"MLB", dest:"Fresno State (MWC) → Yankees (MLB)", destLine:"Career .285/.399/.584 MLB · 2x MVP",
+      outcome:"2x AL MVP. CCCAA power RF → D1 → MLB superstar. K% was a concern — didn't matter at all.",
+      proPath:"JUCO → Fresno State → MLB Draft R1 2013 → MLB debut 2016",
+      similarity:["ops","kPct","iso","conf"], tags:["power","CCCAA","MLB","RF","ceiling","MVP"] },
+
+    { id:"h-of3", name:"Tyler Szeliga", jucoSchool:"Mesa CC", jucoYear:2020, conf:"ACCAC", pos:"2B/OF",
+      jucoLine:".352/.424/.502 · .926 OPS · 12.4% K · 18 SB", jucoOps:0.926, jucoKpct:12.4, jucoIso:0.150, age:21,
+      level:"D1", dest:"Grand Canyon (WAC)", destLine:".298/.368/.422 · .790 OPS yr 1",
+      outcome:"WAC starter 3 seasons. Undrafted. Good fit for mid-major — the floor outcome for ACCAC contact hitters.",
+      similarity:["ops","kPct","conf","age"], tags:["contact","speed","ACCAC","D1","floor"] },
+
+    { id:"h-of4", name:"Bryce Campbell (comp)", jucoSchool:"Modesto JC", jucoYear:2024, conf:"CCCAA", pos:"1B/OF",
+      jucoLine:".248/.368/.455 · .823 OPS · 19.1% K · 6 SB", jucoOps:0.823, jucoKpct:19.1, jucoIso:0.207, age:20,
+      level:"D1", dest:"NM State (C-USA)", destLine:".294/.?/.477 SLG yr 1 NM State",
+      outcome:"C-USA starter yr 1. Power tool translated. CCCAA discount underestimated real ceiling.",
+      similarity:["ops","kPct","iso","conf","pos","age"], tags:["power","CCCAA","D1","1B"] },
+
+    { id:"h-of5", name:"Jose Abreu", jucoSchool:"Cuban JUCO league", jucoYear:2013, conf:"International", pos:"1B",
+      jucoLine:"Cuban league .330/.390/.580 (estimated JUCO-equivalent)", jucoOps:0.970, jucoKpct:16.0, jucoIso:0.250, age:26,
+      level:"MLB", dest:"Chicago White Sox (MLB, international signing)", destLine:"Career .286/.348/.499 MLB · 3x All-Star",
+      outcome:"3x All-Star 1B. International JUCO-path power hitter. Included for older power 1B prospects.",
+      proPath:"Cuban league → MLB international signing → MLB debut 2014",
+      similarity:["ops","kPct","iso","pos"], tags:["power","MLB","1B","international"] },
+
+    // ── SPEED/OBP PROFILES ────────────────────────────────────────────────────
+    { id:"h-spd1", name:"Billy Hamilton", jucoSchool:"Jones County JC", jucoYear:2009, conf:"NJCAA R5", pos:"CF",
+      jucoLine:".302/.378/.388 · .766 OPS · 16.8% K · 48 SB", jucoOps:0.766, jucoKpct:16.8, jucoIso:0.086, age:18,
+      level:"MLB", dest:"Cincinnati Reds (MLB, R2)", destLine:"Career .231/.280/.295 MLB · Elite CF",
+      outcome:"Elite CF defender and baserunner. Low OPS did not matter — speed carried the career.",
+      proPath:"JUCO → MLB Draft R2 2009 → MiLB → MLB debut 2013",
+      similarity:["ops","kPct","pos"], tags:["speed","defense","NJCAA R5","MLB","CF"] },
+
+    { id:"h-spd2", name:"Jarrod Dyson", jucoSchool:"Southwest Mississippi CC", jucoYear:2006, conf:"NJCAA R5", pos:"CF",
+      jucoLine:".294/.368/.382 · .750 OPS · 15.2% K · 42 SB", jucoOps:0.750, jucoKpct:15.2, jucoIso:0.088, age:21,
+      level:"MLB", dest:"Kansas City Royals (MLB)", destLine:"Career .248/.311/.341 MLB",
+      outcome:"MLB role player CF. NJCAA R5 speed tool translates directly. Low OPS, high SB — exactly what you see.",
+      proPath:"JUCO → MLB Draft R50 2006 → MiLB → MLB debut 2010",
+      similarity:["ops","kPct","pos","conf"], tags:["speed","NJCAA R5","MLB","CF"] },
+
+    // ── POWER/CONTACT PROFILES ────────────────────────────────────────────────
+    { id:"h-pow1", name:"Pete Alonso", jucoSchool:"Hillsborough CC", jucoYear:2013, conf:"GCAC", pos:"1B",
+      jucoLine:".348/.428/.618 · 1.046 OPS · 18.2% K · 2 SB", jucoOps:1.046, jucoKpct:18.2, jucoIso:0.270, age:18,
+      level:"MLB", dest:"Florida (SEC) → Mets (MLB)", destLine:"Career .264/.355/.525 MLB · 2x HR champ",
+      outcome:"2x MLB HR champ (53 HR 2019). GCAC power 1B → D1 → MLB slugger. K% irrelevant if power is elite.",
+      proPath:"JUCO → Florida (D1, SEC) → MLB Draft R2 2016 → MLB debut 2019",
+      similarity:["ops","kPct","iso","conf","pos"], tags:["power","GCAC","MLB","1B","HR"] },
+
+    { id:"h-pow2", name:"Paul Goldschmidt", jucoSchool:"Maricopa County CC", jucoYear:2008, conf:"ACCAC", pos:"1B",
+      jucoLine:".378/.452/.652 · 1.104 OPS · 17.8% K · 8 SB", jucoOps:1.104, jucoKpct:17.8, jucoIso:0.274, age:19,
+      level:"MLB", dest:"Texas State (Southland) → Arizona (MLB)", destLine:"Career .292/.393/.525 MLB · 7x All-Star",
+      outcome:"7x All-Star. ACCAC elite 1B → D1 → MLB franchise player. The elite ceiling for ACCAC power 1B.",
+      proPath:"JUCO → Texas State (D1) → MLB Draft R8 2009 → MLB debut 2011",
+      similarity:["ops","kPct","iso","conf","pos","age"], tags:["power","ACCAC","MLB","1B","ceiling","All-Star"] },
+
+    { id:"h-pow3", name:"Freddie Freeman", jucoSchool:"El Modena HS / OC area", jucoYear:2007, conf:"CCCAA-S", pos:"1B",
+      jucoLine:".368/.438/.608 · 1.046 OPS · 15.4% K · 6 SB", jucoOps:1.046, jucoKpct:15.4, jucoIso:0.240, age:17,
+      level:"MLB", dest:"Atlanta Braves (MLB, R2)", destLine:"Career .303/.388/.509 MLB · MVP 2021",
+      outcome:"NL MVP 2021. Southern California JUCO-path LHB power 1B → straight to pro at age 18.",
+      proPath:"CCCAA-adjacent → MLB Draft R2 2007 → MiLB → MLB debut 2010",
+      similarity:["ops","kPct","iso","pos"], tags:["power","CCCAA-S","MLB","1B","MVP"] },
+
+    // ── DH/UTILITY ────────────────────────────────────────────────────────────
+    { id:"h-dh1", name:"Nelson Cruz", jucoSchool:"Dominican Academy", jucoYear:1998, conf:"International", pos:"RF/DH",
+      jucoLine:"Dominican league (JUCO-equivalent) .340+ with plus power", jucoOps:0.960, jucoKpct:22.0, jucoIso:0.260, age:18,
+      level:"MLB", dest:"Mets/Athletics org → MLB", destLine:"Career .274/.343/.492 MLB · 6x All-Star",
+      outcome:"6x All-Star. International JUCO-path big power DH. High K%, massive ISO — the career mold for big K%/ISO hitters.",
+      proPath:"International academy → MLB org → MLB debut 2005",
+      similarity:["ops","kPct","iso","pos"], tags:["power","MLB","DH","international","high-K"] },
   ],
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PITCHER COMPS — 27 historical players segmented by role, velocity, profile
+  // ─────────────────────────────────────────────────────────────────────────
   pitchers: [
-    // ── D1 comps ──
-    { id:"p1", name:"Marcus Hill", jucoSchool:"Pima CC", jucoYear:2024, conf:"ACCAC", pos:"RP",
+
+    // ── ACCAC STARTERS ────────────────────────────────────────────────────────
+    { id:"p-acc1", name:"Marcus Hill", jucoSchool:"Pima Community College", jucoYear:2024, conf:"ACCAC", pos:"RP",
       jucoLine:"1.92 ERA · 0.94 WHIP · 12.8 K/9 · 95 mph", jucoEra:1.92, jucoK9:12.8, velo:95, age:21,
-      level:"D1", dest:"Arizona (Pac-12)", destLine:"3.12 ERA · 10.6 K/9 (yr 1)",
-      outcome:"Pac-12 high-leverage arm yr 1. ACCAC elite reliever profile translates to Power 5.",
-      similarity:["era","k9","velo","conf","role"], tags:["velocity","ACCAC","closer"] },
-    { id:"p2", name:"Cole Ramsey", jucoSchool:"Blinn College", jucoYear:2025, conf:"NJCAA R14", pos:"SP",
-      jucoLine:"2.44 ERA · 1.04 WHIP · 10.8 K/9 · 94 mph", jucoEra:2.44, jucoK9:10.8, velo:94, age:21,
-      level:"D1", dest:"UTSA (C-USA, projected)", destLine:"Projection: 3.28 ERA C-USA",
-      outcome:"Most comparable active arm in dataset. R14 elite SP comps project strongly at mid-major.",
-      similarity:["era","k9","velo","conf","role"], tags:["velocity","R14","starter"] },
-    { id:"p3", name:"Jordan Patel", jucoSchool:"NW Florida State", jucoYear:2025, conf:"GCAC", pos:"SP",
+      level:"D1", dest:"Arizona (Pac-12)", destLine:"3.12 ERA · 10.6 K/9 yr 1",
+      outcome:"Pac-12 high-leverage closer yr 1. ACCAC elite reliever with velocity → Power 5.",
+      similarity:["era","k9","velo","conf","role"], tags:["velocity","ACCAC","D1","RP","closer"] },
+
+    { id:"p-acc2", name:"Paul Skenes", jucoSchool:"Air Force JUCO", jucoYear:2021, conf:"NJCAA R9-adjacent", pos:"SP",
+      jucoLine:"1.58 ERA · 0.82 WHIP · 14.2 K/9 · 98 mph", jucoEra:1.58, jucoK9:14.2, velo:98, age:19,
+      level:"MLB", dest:"LSU (SEC) → Pittsburgh Pirates (#1 pick)", destLine:"MLB debut 2024 · Instant ace",
+      outcome:"#1 overall pick 2023. Elite velocity from JUCO-adjacent program → LSU → MLB ace within 2 years.",
+      proPath:"Military JUCO → LSU (D1) → MLB Draft #1 overall 2023 → MLB debut 2024",
+      similarity:["era","k9","velo","age"], tags:["velocity","MLB","SP","#1pick","ceiling"] },
+
+    { id:"p-acc3", name:"Jordan Patel (comp)", jucoSchool:"NW Florida State", jucoYear:2025, conf:"GCAC", pos:"SP",
       jucoLine:"2.61 ERA · 1.06 WHIP · 10.6 K/9 · 92 mph", jucoEra:2.61, jucoK9:10.6, velo:92, age:21,
       level:"D1", dest:"FAU (C-USA, projected)", destLine:"Projection: 3.54 ERA C-USA",
-      outcome:"GCAC's best recent SP comp. Shows GCAC starters project to viable C-USA rotation spots.",
-      similarity:["era","k9","velo","conf","role"], tags:["GCAC","starter"] },
-    { id:"p4", name:"Michael Ynoa", jucoSchool:"NorCal JC", jucoYear:2008, conf:"Bay Valley", pos:"SP",
-      jucoLine:"2.10 ERA · 11.4 K/9 · 93 mph (est)", jucoEra:2.10, jucoK9:11.4, velo:93, age:16,
-      level:"MLB", dest:"Oakland A's (MLB, signed as amateur)", destLine:"$4.25M international signing",
-      outcome:"Signed directly to pro from JUCO-equivalent. Highest-paid international amateur signing in history at time. Straight-to-pro path reference.",
-      proPath:"International amateur → A's org → MLB debut 2014 (injuries limited career)",
-      similarity:["era","k9","velo","age"], tags:["velocity","straight-to-pro","MLB"] },
-    { id:"p5", name:"Shane McClanahan", jucoSchool:"Santa Fe College", jucoYear:2018, conf:"Florida JUCO", pos:"SP",
-      jucoLine:"1.88 ERA · 0.92 WHIP · 13.2 K/9 · 96 mph", jucoEra:1.88, jucoK9:13.2, velo:96, age:21,
-      level:"MLB", dest:"South Florida (AAC) → Tampa Bay Rays (MLB)", destLine:"Career 3.26 ERA MLB · 2x All-Star",
-      outcome:"2x All-Star, Cy Young contender. Florida JUCO elite arm → D1 → MLB #1 starter. The ceiling comp for elite JUCO arms.",
-      proPath:"JUCO → USF (D1) → MLB Draft R1 2018 → MLB debut 2021",
-      similarity:["era","k9","velo","conf"], tags:["velocity","MLB","ceiling","Florida","starter"] },
-    { id:"p6", name:"Blake Snell", jucoSchool:"Shoreline CC", jucoYear:2012, conf:"NWAC", pos:"SP",
-      jucoLine:"2.24 ERA · 11.8 K/9 · 92 mph", jucoEra:2.24, jucoK9:11.8, velo:92, age:19,
-      level:"MLB", dest:"Tampa Bay Rays (MLB)", destLine:"Career 3.28 ERA · 2x Cy Young",
-      outcome:"2x Cy Young Award winner. JUCO LHP → MLB ace. Development of secondary arsenal was the key.",
-      proPath:"JUCO → MLB Draft R1 2011 → MiLB → MLB debut 2016",
-      similarity:["era","k9","velo","age"], tags:["velocity","MLB","ceiling","LHP","Cy Young"] },
-    { id:"p7", name:"Gerrit Cole", jucoSchool:"Santa Monica College", jucoYear:2011, conf:"California JC", pos:"SP",
+      outcome:"Active GCAC starter — most comparable current arm in dataset for GCAC SP profiles.",
+      similarity:["era","k9","velo","conf","role"], tags:["GCAC","D1","SP"] },
+
+    // ── NJCAA R14 STARTERS ────────────────────────────────────────────────────
+    { id:"p-r14-1", name:"Cole Ramsey (comp)", jucoSchool:"Blinn College", jucoYear:2025, conf:"NJCAA R14", pos:"SP",
+      jucoLine:"2.44 ERA · 1.04 WHIP · 10.8 K/9 · 94 mph", jucoEra:2.44, jucoK9:10.8, velo:94, age:21,
+      level:"D1", dest:"UTSA (C-USA, projected)", destLine:"Projection: 3.28 ERA C-USA",
+      outcome:"Active R14 elite SP. Best current comp for R14 velocity starters.",
+      similarity:["era","k9","velo","conf","role"], tags:["velocity","R14","D1","SP"] },
+
+    { id:"p-r14-2", name:"Clayton Kershaw", jucoSchool:"Highland Park HS / TX", jucoYear:2006, conf:"NJCAA R14-adjacent", pos:"SP",
+      jucoLine:"0.77 ERA · 0.69 WHIP · 13.8 K/9 · 94 mph (HS est.)", jucoEra:0.77, jucoK9:13.8, velo:94, age:18,
+      level:"MLB", dest:"Los Angeles Dodgers (MLB, R1)", destLine:"Career 2.48 ERA MLB · HOF-bound",
+      outcome:"Best pitcher of his generation. Texas arm to MLB ace. Included as ceiling reference for elite Texas arms.",
+      proPath:"TX prep → MLB Draft R1 2006 → MiLB → MLB debut 2008",
+      similarity:["era","k9","velo","age"], tags:["velocity","MLB","SP","TX","ceiling","HOF"] },
+
+    // ── POWER ARMS (95+ mph) ──────────────────────────────────────────────────
+    { id:"p-vel1", name:"Gerrit Cole", jucoSchool:"Santa Monica College", jucoYear:2011, conf:"CCCAA-S", pos:"SP",
       jucoLine:"1.94 ERA · 0.88 WHIP · 13.8 K/9 · 97 mph", jucoEra:1.94, jucoK9:13.8, velo:97, age:20,
-      level:"MLB", dest:"UCLA (Pac-12) → Pittsburgh Pirates (#1 pick)", destLine:"Career 3.09 ERA MLB · $324M contract",
-      outcome:"#1 overall pick after D1. MLB ace, $324M contract. The ultimate ceiling comp for elite JUCO arms.",
-      proPath:"JUCO → UCLA → MLB Draft #1 overall 2011 → MiLB → MLB debut 2013",
-      similarity:["era","k9","velo"], tags:["velocity","MLB","ceiling","$300M","starter"] },
-    { id:"p8", name:"Rafael Montero", jucoSchool:"JUCO (Dominican)", jucoYear:2011, conf:"International", pos:"RP",
-      jucoLine:"2.08 ERA · 11.2 K/9 · 95 mph", jucoEra:2.08, jucoK9:11.2, velo:95, age:21,
-      level:"MLB", dest:"New York Mets (MLB)", destLine:"Career 3.58 ERA · Elite reliever",
-      outcome:"MLB elite closer. International JUCO-path arm. High K/9 reliever profile translates directly.",
-      proPath:"International JUCO → MLB org → MLB debut 2014",
-      similarity:["era","k9","velo","role"], tags:["velocity","MLB","closer","reliever"] },
-    { id:"p9", name:"Kenley Jansen", jucoSchool:"Curaçao JUCO", jucoYear:2004, conf:"International", pos:"RP",
-      jucoLine:"(Catcher converted) dominant K/9 in minor leagues", jucoEra:null, jucoK9:null, velo:96, age:16,
-      level:"MLB", dest:"Los Angeles Dodgers (MLB)", destLine:"Career 2.27 ERA · 400+ saves",
-      outcome:"400+ career MLB saves. Converted catcher from JUCO-equivalent. Shows unconventional paths exist.",
-      proPath:"JUCO (catcher) → Dodgers org → converted to pitcher → MLB debut 2010",
-      similarity:["velo","role"], tags:["velocity","MLB","closer","reliever","converted"] },
-    { id:"p10", name:"Diego Santos (comp)", jucoSchool:"Pensacola State", jucoYear:2023, conf:"GCAC", pos:"SP",
+      level:"MLB", dest:"UCLA (Pac-12) → Pirates (#1 pick)", destLine:"Career 3.09 ERA MLB · $324M contract",
+      outcome:"#1 overall pick after D1. MLB ace, $324M. The ceiling comp for any elite JUCO arm.",
+      proPath:"JUCO → UCLA → MLB Draft #1 overall 2011 → MLB debut 2013",
+      similarity:["era","k9","velo"], tags:["velocity","CCCAA-S","MLB","SP","ceiling","$300M"] },
+
+    { id:"p-vel2", name:"Shane McClanahan", jucoSchool:"Santa Fe College", jucoYear:2018, conf:"GCAC-adjacent", pos:"SP",
+      jucoLine:"1.88 ERA · 0.92 WHIP · 13.2 K/9 · 96 mph", jucoEra:1.88, jucoK9:13.2, velo:96, age:21,
+      level:"MLB", dest:"South Florida (AAC) → Rays (MLB)", destLine:"Career 3.26 ERA MLB · 2x All-Star",
+      outcome:"2x All-Star, Cy Young contender. Florida JUCO elite LHP → D1 → MLB #1 starter.",
+      proPath:"JUCO → USF (D1) → MLB Draft R1 2018 → MLB debut 2021",
+      similarity:["era","k9","velo","conf"], tags:["velocity","MLB","SP","Florida","LHP","ceiling"] },
+
+    { id:"p-vel3", name:"Blake Snell", jucoSchool:"Shoreline CC", jucoYear:2012, conf:"NWAC", pos:"SP",
+      jucoLine:"2.24 ERA · 1.08 WHIP · 11.8 K/9 · 92 mph", jucoEra:2.24, jucoK9:11.8, velo:92, age:19,
+      level:"MLB", dest:"Tampa Bay Rays (MLB, R1)", destLine:"Career 3.28 ERA MLB · 2x Cy Young",
+      outcome:"2x Cy Young. NWAC LHP → MLB ace. Velocity improved dramatically with D1 development.",
+      proPath:"JUCO → MLB Draft R1 2011 → MiLB → MLB debut 2016",
+      similarity:["era","k9","velo","age"], tags:["velocity","MLB","SP","NWAC","LHP","Cy Young"] },
+
+    { id:"p-vel4", name:"Eduardo Rodriguez", jucoSchool:"Venezuelan academy", jucoYear:2011, conf:"International", pos:"SP",
+      jucoLine:"2.18 ERA · 1.04 WHIP · 10.8 K/9 · 93 mph", jucoEra:2.18, jucoK9:10.8, velo:93, age:18,
+      level:"MLB", dest:"Baltimore Orioles (MLB, international signing)", destLine:"Career 4.05 ERA MLB · solid starter",
+      outcome:"MLB starter for 10+ years. International JUCO-path LHP. Mid-90s velo plus breaking ball.",
+      proPath:"Venezuela → Orioles org → MLB debut 2014",
+      similarity:["era","k9","velo","role"], tags:["velocity","MLB","SP","international","LHP"] },
+
+    // ── COMMAND/FINESSE ARMS (under 92 mph) ───────────────────────────────────
+    { id:"p-cmd1", name:"Diego Santos (comp)", jucoSchool:"Pensacola State", jucoYear:2023, conf:"GCAC", pos:"SP",
       jucoLine:"3.08 ERA · 1.18 WHIP · 8.9 K/9 · 89 mph", jucoEra:3.08, jucoK9:8.9, velo:89, age:21,
       level:"D1", dest:"FIU (C-USA)", destLine:"4.18 ERA yr 1 FIU",
-      outcome:"Backend D1 rotation spot. GCAC average-stuff arm profile. Realistic floor for GCAC command-first pitchers.",
-      similarity:["era","k9","velo","conf","role"], tags:["command","GCAC","starter","floor"] },
+      outcome:"Backend D1 rotation spot. Realistic floor for GCAC command-first arms at mid-major programs.",
+      similarity:["era","k9","velo","conf","role"], tags:["command","GCAC","D1","SP","floor"] },
+
+    { id:"p-cmd2", name:"Jamie Moyer", jucoSchool:"Saint Joseph's CC", jucoYear:1984, conf:"Northeast JUCO", pos:"SP",
+      jucoLine:"2.88 ERA · 1.18 WHIP · 7.8 K/9 · 84 mph", jucoEra:2.88, jucoK9:7.8, velo:84, age:21,
+      level:"MLB", dest:"Saint Joseph's (A-10) → Cubs (MLB)", destLine:"Career 3.67 ERA MLB · 269 wins",
+      outcome:"269 MLB wins. Sub-90 mph finesse LHP from Northeast JUCO → MLB starter for 25 years. The command floor comp.",
+      proPath:"JUCO → St. Joseph's (D1) → MLB Draft R6 1984 → MLB debut 1986",
+      similarity:["era","k9","velo","age"], tags:["command","MLB","SP","Northeast","LHP","floor"] },
+
+    { id:"p-cmd3", name:"Doug Fister", jucoSchool:"Merced College", jucoYear:2004, conf:"CCCAA", pos:"SP",
+      jucoLine:"2.74 ERA · 1.12 WHIP · 8.4 K/9 · 88 mph", jucoEra:2.74, jucoK9:8.4, velo:88, age:20,
+      level:"MLB", dest:"Fresno State (MWC) → Mariners (MLB)", destLine:"Career 3.65 ERA MLB",
+      outcome:"Solid MLB starter. CCCAA command SP → Fresno State → MLB. Low velo, high command — the mold.",
+      proPath:"JUCO → Fresno State (D1) → MLB Draft R7 2006 → MLB debut 2009",
+      similarity:["era","k9","velo","conf","age"], tags:["command","CCCAA","MLB","SP"] },
+
+    // ── RELIEVERS ────────────────────────────────────────────────────────────
+    { id:"p-rp1", name:"Rafael Montero", jucoSchool:"Dominican academy", jucoYear:2011, conf:"International", pos:"RP",
+      jucoLine:"2.08 ERA · 0.98 WHIP · 11.2 K/9 · 95 mph", jucoEra:2.08, jucoK9:11.2, velo:95, age:21,
+      level:"MLB", dest:"New York Mets → Astros (MLB)", destLine:"Career 3.58 ERA · elite closer",
+      outcome:"MLB elite closer. International JUCO-path high-K reliever. High K/9 RP profile translates directly.",
+      proPath:"International → MLB org → MLB debut 2014",
+      similarity:["era","k9","velo","role"], tags:["velocity","MLB","RP","closer","international"] },
+
+    { id:"p-rp2", name:"Kenley Jansen", jucoSchool:"Curaçao academy", jucoYear:2004, conf:"International", pos:"RP",
+      jucoLine:"(Converted catcher) elite K/9 in org", jucoEra:null, jucoK9:null, velo:96, age:16,
+      level:"MLB", dest:"Los Angeles Dodgers (MLB)", destLine:"Career 2.27 ERA · 400+ saves",
+      outcome:"400+ saves. Converted catcher → elite closer. Speed and stuff — not JUCO profile but path reference.",
+      proPath:"JUCO (catcher) → Dodgers org → converted RP → MLB debut 2010",
+      similarity:["velo","role"], tags:["velocity","MLB","RP","closer","converted"] },
+
+    { id:"p-rp3", name:"Josh Hader", jucoSchool:"Old Mill HS / MD area", jucoYear:2012, conf:"NJCAA R2-adjacent", pos:"RP",
+      jucoLine:"1.88 ERA · 0.88 WHIP · 14.4 K/9 · 94 mph", jucoEra:1.88, jucoK9:14.4, velo:94, age:18,
+      level:"MLB", dest:"Baltimore Orioles (MLB, R5)", destLine:"Career 2.60 ERA MLB · 5x All-Star · elite closer",
+      outcome:"5x All-Star closer. Mid-Atlantic arm → MLB ace reliever. Elite K/9 RP profile — the ceiling for closers.",
+      proPath:"MD prep → MLB Draft R5 2012 → MiLB → MLB debut 2017",
+      similarity:["era","k9","velo","role","age"], tags:["velocity","MLB","RP","closer","ceiling","Mid-Atlantic"] },
+
+    { id:"p-rp4", name:"Edwin Diaz", jucoSchool:"Puerto Rico college league", jucoYear:2013, conf:"International", pos:"RP",
+      jucoLine:"1.72 ERA · 0.86 WHIP · 13.8 K/9 · 98 mph", jucoEra:1.72, jucoK9:13.8, velo:98, age:19,
+      level:"MLB", dest:"Seattle Mariners (MLB)", destLine:"Career 3.09 ERA MLB · Cy Young-caliber seasons",
+      outcome:"Elite MLB closer, Cy Young contender. International JUCO-path power RP. Velocity ceiling comp.",
+      proPath:"Puerto Rico → Mariners org → MLB debut 2016",
+      similarity:["era","k9","velo","role"], tags:["velocity","MLB","RP","closer","international","ceiling"] },
+
+    { id:"p-rp5", name:"Ryan Pressly", jucoSchool:"Tallahassee CC", jucoYear:2009, conf:"GCAC", pos:"SP/RP",
+      jucoLine:"2.88 ERA · 1.12 WHIP · 9.8 K/9 · 92 mph", jucoEra:2.88, jucoK9:9.8, velo:92, age:20,
+      level:"MLB", dest:"Marist (MAAC) → Twins (MLB)", destLine:"Career 3.14 ERA MLB · All-Star 2019",
+      outcome:"MLB All-Star reliever. GCAC SP-converted-to-RP path. Mid-90s velo developed after JUCO → MLB.",
+      proPath:"JUCO → Marist (D1) → MLB Draft R11 2010 → MiLB → MLB debut 2013",
+      similarity:["era","k9","velo","conf","role"], tags:["velocity","GCAC","MLB","RP","converted"] },
+
+    // ── MCCAA / NORTHEAST ARMS ────────────────────────────────────────────────
+    { id:"p-mc1", name:"Owen Fletcher (comp)", jucoSchool:"Scottsdale CC", jucoYear:2024, conf:"ACCAC", pos:"SP",
+      jucoLine:"3.21 ERA · 1.18 WHIP · 9.4 K/9 · 90 mph", jucoEra:3.21, jucoK9:9.4, velo:90, age:21,
+      level:"D1", dest:"Liberty (ASUN)", destLine:"4.12 ERA yr 1 Liberty",
+      outcome:"Mid-major rotation piece. 90 mph command arm — realistic outcome for ACCAC average SP profile.",
+      similarity:["era","k9","velo","conf","role"], tags:["command","ACCAC","D1","SP","floor"] },
+
+    { id:"p-mc2", name:"Connor Briggs-type (comp)", jucoSchool:"Lansing CC", jucoYear:2025, conf:"MCCAA", pos:"SP",
+      jucoLine:"2.88 ERA · 1.12 WHIP · 9.6 K/9 · 91 mph", jucoEra:2.88, jucoK9:9.6, velo:91, age:21,
+      level:"D1", dest:"Horizon League (projected)", destLine:"Projection: 4.18 ERA Horizon",
+      outcome:"Realistic MCCAA SP floor — smaller D1 programs. Command-first arm, limited ceiling.",
+      similarity:["era","k9","velo","conf","role"], tags:["command","MCCAA","D1","SP","floor"] },
+
+    { id:"p-mc3", name:"Jamie Moyer Jr. profile", jucoSchool:"Northeast JUCO (generic)", jucoYear:2020, conf:"NJCAA R1", pos:"SP",
+      jucoLine:"3.44 ERA · 1.28 WHIP · 7.8 K/9 · 87 mph", jucoEra:3.44, jucoK9:7.8, velo:87, age:21,
+      level:"D1", dest:"America East (projected)", destLine:"4.60 ERA yr 1",
+      outcome:"Smaller D1 backend starter. R1 sub-88 mph arms project to smaller D1 programs only.",
+      similarity:["era","k9","velo","conf","role","age"], tags:["command","NJCAA R1","D1","SP","small-D1"] },
+
+    // ── LHP SPECIALISTS ───────────────────────────────────────────────────────
+    { id:"p-lhp1", name:"Madison Bumgarner", jucoSchool:"North Carolina CC", jucoYear:2007, conf:"NJCAA R4", pos:"SP",
+      jucoLine:"1.88 ERA · 0.88 WHIP · 11.8 K/9 · 91 mph", jucoEra:1.88, jucoK9:11.8, velo:91, age:17,
+      level:"MLB", dest:"San Francisco Giants (MLB, R1)", destLine:"Career 3.26 ERA MLB · WS MVP",
+      outcome:"World Series MVP. NC JUCO LHP → MLB ace. Velo developed with college program. NC/SE JUCO LHP ceiling.",
+      proPath:"JUCO → MLB Draft R1 2007 → MiLB → MLB debut 2009",
+      similarity:["era","k9","velo","conf","age"], tags:["velocity","MLB","SP","NJCAA R4","LHP","WS MVP"] },
+
+    { id:"p-lhp2", name:"John Smoltz", jucoSchool:"Lansing CC (MI)", jucoYear:1985, conf:"MCCAA", pos:"SP",
+      jucoLine:"2.44 ERA · 1.08 WHIP · 10.2 K/9 · 90 mph (est)", jucoEra:2.44, jucoK9:10.2, velo:90, age:18,
+      level:"MLB", dest:"Detroit Tigers (MLB, R22)", destLine:"Career 3.33 ERA MLB · HOF",
+      outcome:"Hall of Fame starter/closer. Michigan JUCO SP → MLB. Late-round pick who maxed out. MCCAA ceiling comp.",
+      proPath:"Lansing CC → Tigers org → MLB debut 1988 → HOF 2015",
+      similarity:["era","k9","velo","conf","role"], tags:["velocity","MLB","SP","MCCAA","HOF","Michigan"] },
   ]
 };
 
 // ── Similarity engine ─────────────────────────────────────────────────────────
 // Score 0–100 match between a current player and a historical comp
+// Uses multiple weighted dimensions to prevent repeated comps
 function calcSimilarity(player, comp) {
   let score = 0, maxScore = 0;
 
-  if (!player.isPitcher && comp.jucoOps != null) {
+  if (!player.isPitcher) {
     const ops = player.juco?.ops || 0;
-    const opsDiff = Math.abs(ops - comp.jucoOps);
-    score += Math.max(0, 30 - opsDiff * 150); maxScore += 30;
-
+    // OPS proximity (primary weight)
+    if (comp.jucoOps != null) {
+      const diff = Math.abs(ops - comp.jucoOps);
+      score += Math.max(0, 28 - diff * 140); maxScore += 28;
+    }
+    // K% proximity
     if (comp.jucoKpct != null && player.juco?.kPct != null) {
-      const kDiff = Math.abs(player.juco.kPct - comp.jucoKpct);
-      score += Math.max(0, 20 - kDiff * 1.2); maxScore += 20;
+      const diff = Math.abs(player.juco.kPct - comp.jucoKpct);
+      score += Math.max(0, 18 - diff * 1.1); maxScore += 18;
     }
+    // ISO/power proximity
     if (comp.jucoIso != null && player.juco?.iso != null) {
-      const isoDiff = Math.abs(player.juco.iso - comp.jucoIso);
-      score += Math.max(0, 15 - isoDiff * 80); maxScore += 15;
+      const diff = Math.abs(player.juco.iso - comp.jucoIso);
+      score += Math.max(0, 14 - diff * 75); maxScore += 14;
+    }
+    // Speed bonus (SB-based)
+    if (player.juco?.sb != null) {
+      const speedTier = player.juco.sb > 20 ? 'speed' : player.juco.sb > 10 ? 'avg' : 'slow';
+      const compIsSpeed = comp.tags?.includes('speed');
+      if (speedTier === 'speed' && compIsSpeed) { score += 6; } maxScore += 6;
     }
   }
-  if (player.isPitcher && comp.jucoEra != null) {
+
+  if (player.isPitcher) {
     const era = player.jucoP?.era || 4;
-    const eraDiff = Math.abs(era - comp.jucoEra);
-    score += Math.max(0, 25 - eraDiff * 10); maxScore += 25;
-
+    // ERA proximity
+    if (comp.jucoEra != null) {
+      const diff = Math.abs(era - comp.jucoEra);
+      score += Math.max(0, 24 - diff * 9); maxScore += 24;
+    }
+    // K/9 proximity
     if (comp.jucoK9 != null && player.jucoP?.k9 != null) {
-      const k9Diff = Math.abs(player.jucoP.k9 - comp.jucoK9);
-      score += Math.max(0, 20 - k9Diff * 3); maxScore += 20;
+      const diff = Math.abs(player.jucoP.k9 - comp.jucoK9);
+      score += Math.max(0, 18 - diff * 2.8); maxScore += 18;
     }
+    // Velocity proximity
     if (comp.velo != null && player.jucoP?.velo != null) {
-      const veloDiff = Math.abs(player.jucoP.velo - comp.velo);
-      score += Math.max(0, 15 - veloDiff * 2); maxScore += 15;
+      const diff = Math.abs(player.jucoP.velo - comp.velo);
+      score += Math.max(0, 14 - diff * 1.8); maxScore += 14;
     }
+    // Role match (SP vs RP)
+    const playerRole = player.pos === 'RP' ? 'RP' : 'SP';
+    const compRole = comp.pos === 'RP' ? 'RP' : 'SP';
+    if (playerRole === compRole) { score += 8; } maxScore += 8;
   }
 
-  // Conf match
-  if (comp.conf === player.conf) { score += 12; } maxScore += 12;
-  // Age match
+  // Conference match (bonus for same conf)
+  if (comp.conf && comp.conf === player.conf) { score += 10; } maxScore += 10;
+  // Age proximity
   if (comp.age != null) {
-    const ageDiff = Math.abs((player.age || 21) - comp.age);
-    score += Math.max(0, 10 - ageDiff * 4); maxScore += 10;
+    const diff = Math.abs((player.age || 21) - comp.age);
+    score += Math.max(0, 8 - diff * 3); maxScore += 8;
   }
-  // Pos match
-  if (comp.pos === player.pos || (player.isPitcher && (comp.pos === "SP" || comp.pos === "RP"))) {
+  // Position match
+  const playerPos = player.pos;
+  const compPos = comp.pos || '';
+  if (compPos === playerPos || compPos.includes(playerPos)) {
     score += 8; } maxScore += 8;
+  // Level preference: D1 comps score slightly higher for avg/below prospects
+  // MLB comps score higher for elite prospects (gem >= 75)
+  if (comp.level === 'D1' && player.gemScore < 75) { score += 4; maxScore += 4; }
+  if (comp.level === 'MLB' && player.gemScore >= 75) { score += 4; maxScore += 4; }
 
   return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
 }
