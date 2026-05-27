@@ -352,6 +352,8 @@ function projectToConf(player, targetConf) {
     const normalizedEra = player.jucoP.era / source.rating;
     const kAdjust = player.jucoP.k9 > 10 ? 0.94 : player.jucoP.k9 > 8 ? 1.00 : 1.08;
     const projEra = Math.round(normalizedEra * kAdjust * target.eraMult / 1.18 * 100) / 100;
+    /* NOTE: pitcher projections validated on 2 data points only (Estrada/Yarbrough).
+       Use directionally but treat absolute ERA values as estimates. */
     const projWhip = Math.round(player.jucoP.whip / source.rating * kAdjust * (target.eraMult/1.18) * 0.96 * 100) / 100;
     const projFip = Math.round(player.jucoP.fip / source.rating * kAdjust * target.eraMult / 1.18 * 100) / 100;
     return { ...player.proj, era:projEra, whip:projWhip, fip:projFip,
@@ -853,7 +855,7 @@ function App() {
 
     {!isMobile && <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",height:52,borderBottom:"1px solid rgba(255,255,255,.07)",background:"#0a0f1a",position:"sticky",top:0,zIndex:20,flexShrink:0}}>
       <div style={{display:"flex",alignItems:"center",gap:14}}>
-        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:2,color:"#f6ad55"}}>DRAFTBOARD<span style={{color:"#4a5568",marginLeft:2}}>PRO</span> <span style={{fontSize:11,color:"#4a5568",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>v2.2</span></div>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:2,color:"#f6ad55"}}>DRAFTBOARD<span style={{color:"#4a5568",marginLeft:2}}>PRO</span> <span style={{fontSize:11,color:"#4a5568",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>v2.3</span></div>
         <div style={{width:1,height:20,background:"rgba(255,255,255,.08)"}}/>
         {[["board","Scout Board"],["pipeline",`Pipeline (${Object.keys(pipeline).length})`],["conferences","Conferences"]].map(([v,lbl]) => (
           <button key={v} onClick={() => setView(v)} style={{background:view===v?"rgba(246,173,85,.08)":"none",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:13,padding:"6px 10px",borderRadius:4,color:view===v?"#f6ad55":"#718096"}}>{lbl}</button>
