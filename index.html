@@ -212,176 +212,40 @@ function parsePlayer(row) {
   };
 }
 
-const COMP_DB = {
-  hitters: [
-    { id:"h-c1", name:"Yainer Diaz", jucoSchool:"San Jacinto JC", jucoYear:2019, conf:"NJCAA R14", pos:"C",
-      jucoLine:".368/.422/.588 \u00b7 1.010 OPS \u00b7 9.2% K \u00b7 6 SB", jucoOps:1.010, jucoKpct:9.2, jucoIso:0.220, age:21,
-      level:"MLB", dest:"Houston Astros", destLine:".274/.311/.463 \u00b7 .774 OPS MLB",
-      outcome:"MLB regular by age 25. All-Star caliber contact from the catcher position. R14 elite C profile.",
-      proPath:"JUCO \u2192 Houston (D1) \u2192 MiLB 2 yrs \u2192 MLB debut 2022",
-      similarity:["ops","kPct","iso","conf","pos"], tags:["contact","power","R14","MLB","C"] },
-    { id:"h-c2", name:"Ben Davis", jucoSchool:"Connors State College", jucoYear:1994, conf:"NJCAA R6", pos:"C",
-      jucoLine:".334/.398/.512 \u00b7 .910 OPS \u00b7 14.2% K", jucoOps:0.910, jucoKpct:14.2, jucoIso:0.178, age:18,
-      level:"MLB", dest:"San Diego Padres (MLB, #2 pick)", destLine:".246/.313/.388 MLB career",
-      outcome:"#2 overall pick out of JUCO. C with plus arm and bat profile.",
-      proPath:"JUCO \u2192 MLB Draft #2 overall \u2192 MiLB \u2192 MLB debut 1998",
-      similarity:["ops","kPct","pos","age"], tags:["power","NJCAA R6","MLB","C","draft"] },
-    { id:"h-c3", name:"Danny Lehmann", jucoSchool:"Pima Community College", jucoYear:2018, conf:"ACCAC", pos:"C",
-      jucoLine:".318/.388/.468 \u00b7 .856 OPS \u00b7 16.8% K \u00b7 4 SB", jucoOps:0.856, jucoKpct:16.8, jucoIso:0.150, age:21,
-      level:"D1", dest:"Arizona State (Pac-12)", destLine:".272/.344/.402 \u00b7 .746 OPS yr 1",
-      outcome:"PAC-12 starting catcher yr 1. ACCAC C profile translates to Power 5 fringe-starter. Floor outcome.",
-      similarity:["ops","kPct","conf","pos","age"], tags:["defense","ACCAC","D1","C","floor"] },
-    { id:"h-c4", name:"JT Realmuto", jucoSchool:"Indian River State College", jucoYear:2010, conf:"GCAC", pos:"C",
-      jucoLine:".356/.412/.538 \u00b7 .950 OPS \u00b7 13.1% K \u00b7 10 SB", jucoOps:0.950, jucoKpct:13.1, jucoIso:0.182, age:19,
-      level:"MLB", dest:"Florida Marlins (MLB, R3)", destLine:"Career .278/.336/.455 MLB \u00b7 4x All-Star C",
-      outcome:"4x All-Star catcher. GCAC athletic C \u2192 MLB best catcher. The ceiling comp for any GCAC backstop.",
-      proPath:"JUCO \u2192 MLB Draft R3 2010 \u2192 MiLB \u2192 MLB debut 2014",
-      similarity:["ops","kPct","conf","pos","age"], tags:["defense","GCAC","MLB","C","ceiling","All-Star"] },
-    { id:"h-2b1", name:"Easton Rulli", jucoSchool:"Central Arizona College", jucoYear:2025, conf:"ACCAC", pos:"2B",
-      jucoLine:".396/.448/.650 \u00b7 1.098 OPS \u00b7 8.1% K \u00b7 22 SB", jucoOps:1.098, jucoKpct:8.1, jucoIso:0.254, age:21,
-      level:"D1", dest:"NM State (C-USA)", destLine:".308/.382/.486 \u00b7 .868 OPS yr 1",
-      outcome:"Above-avg C-USA starter yr 1. Validation player \u2014 model projected .812, actual .868 (+7%).",
-      similarity:["ops","kPct","iso","conf","age","pos"], tags:["contact","speed","ACCAC","D1","2B","validation"] },
-    { id:"h-2b2", name:"DJ LeMahieu", jucoSchool:"Chipola College", jucoYear:2009, conf:"GCAC", pos:"2B",
-      jucoLine:".322/.388/.462 \u00b7 .850 OPS \u00b7 11.8% K \u00b7 8 SB", jucoOps:0.850, jucoKpct:11.8, jucoIso:0.140, age:19,
-      level:"MLB", dest:"LSU (SEC) \u2192 Cubs (MLB)", destLine:"Career .298/.350/.406 MLB \u00b7 3x All-Star",
-      outcome:"3x All-Star, 3x Gold Glove. GCAC contact 2B \u2192 MLB star.",
-      proPath:"JUCO \u2192 LSU \u2192 MLB Draft R2 2009 \u2192 MLB debut 2011",
-      similarity:["ops","kPct","pos","conf","age"], tags:["contact","defense","GCAC","MLB","2B"] },
-    { id:"h-2b3", name:"Jose Altuve", jucoSchool:"Maracay JUCO", jucoYear:2006, conf:"Venezuelan JUCO", pos:"2B",
-      jucoLine:".368/.428/.522 \u00b7 .950 OPS \u00b7 9.8% K \u00b7 24 SB", jucoOps:0.950, jucoKpct:9.8, jucoIso:0.154, age:16,
-      level:"MLB", dest:"Houston Astros (intl FA)", destLine:"Career .307/.358/.453 MLB \u00b7 7x All-Star \u00b7 MVP",
-      outcome:"AL MVP 2017. 7x All-Star. The contact 2B speed profile at its absolute ceiling.",
-      proPath:"Venezuelan JUCO \u2192 MLB intl signing 2007 \u2192 MiLB \u2192 MLB debut 2011",
-      similarity:["ops","kPct","pos","age"], tags:["contact","speed","MLB","2B","MVP","ceiling"] },
-    { id:"h-ss1", name:"Marcus Semien", jucoSchool:"Diablo Valley College", jucoYear:2011, conf:"CCCAA", pos:"SS",
-      jucoLine:".334/.398/.478 \u00b7 .876 OPS \u00b7 14.2% K \u00b7 14 SB", jucoOps:0.876, jucoKpct:14.2, jucoIso:0.144, age:20,
-      level:"MLB", dest:"Cal Berkeley (Pac-12) \u2192 Oakland A's", destLine:"Career .244/.317/.413 MLB \u00b7 4x All-Star",
-      outcome:"4x All-Star. 45 HR 2021. The ceiling comp for any JUCO SS.",
-      proPath:"JUCO \u2192 Cal (D1) \u2192 MLB Draft R6 \u2192 MLB debut 2013",
-      similarity:["ops","kPct","pos","age"], tags:["speed","defense","MLB","CCCAA","SS","ceiling"] },
-    { id:"h-of2", name:"Aaron Judge", jucoSchool:"Fresno CC", jucoYear:2010, conf:"CCCAA", pos:"RF",
-      jucoLine:".382/.448/.692 \u00b7 1.140 OPS \u00b7 22.4% K \u00b7 8 SB", jucoOps:1.140, jucoKpct:22.4, jucoIso:0.310, age:18,
-      level:"MLB", dest:"Fresno State (MWC) \u2192 Yankees (MLB)", destLine:"Career .285/.399/.584 MLB \u00b7 2x MVP",
-      outcome:"2x AL MVP. CCCAA power RF \u2192 D1 \u2192 MLB superstar.",
-      proPath:"JUCO \u2192 Fresno State \u2192 MLB Draft R1 2013 \u2192 MLB debut 2016",
-      similarity:["ops","kPct","iso","conf"], tags:["power","CCCAA","MLB","RF","ceiling","MVP"] },
-    { id:"h-of3", name:"Kyle Tucker", jucoSchool:"Tallahassee CC", jucoYear:2015, conf:"GCAC", pos:"RF",
-      jucoLine:".378/.448/.648 \u00b7 1.096 OPS \u00b7 9.8% K \u00b7 14 SB", jucoOps:1.096, jucoKpct:9.8, jucoIso:0.270, age:18,
-      level:"MLB", dest:"Houston Astros (MLB, R1)", destLine:"Career .280/.356/.498 MLB \u00b7 3x All-Star",
-      outcome:"3x All-Star. Elite GCAC RF \u2192 MLB franchise player. The gold standard for GCAC OF power.",
-      proPath:"JUCO \u2192 Houston (D1) \u2192 MLB Draft R1 2015 \u2192 MLB debut 2016",
-      similarity:["ops","kPct","iso","conf","age","pos"], tags:["power","GCAC","MLB","RF","ceiling","All-Star"] },
-    { id:"h-pow1", name:"Pete Alonso", jucoSchool:"Hillsborough CC", jucoYear:2013, conf:"GCAC", pos:"1B",
-      jucoLine:".348/.428/.618 \u00b7 1.046 OPS \u00b7 18.2% K \u00b7 2 SB", jucoOps:1.046, jucoKpct:18.2, jucoIso:0.270, age:18,
-      level:"MLB", dest:"Florida (SEC) \u2192 Mets (MLB)", destLine:"Career .264/.355/.525 MLB \u00b7 2x HR champ",
-      outcome:"2x MLB HR champ. GCAC power 1B \u2192 D1 \u2192 MLB slugger.",
-      proPath:"JUCO \u2192 Florida (D1, SEC) \u2192 MLB Draft R2 2016 \u2192 MLB debut 2019",
-      similarity:["ops","kPct","iso","conf","pos"], tags:["power","GCAC","MLB","1B","HR"] },
-    { id:"h-pow2", name:"Paul Goldschmidt", jucoSchool:"Maricopa County CC", jucoYear:2008, conf:"ACCAC", pos:"1B",
-      jucoLine:".378/.452/.652 \u00b7 1.104 OPS \u00b7 17.8% K \u00b7 8 SB", jucoOps:1.104, jucoKpct:17.8, jucoIso:0.274, age:19,
-      level:"MLB", dest:"Texas State (Southland) \u2192 Arizona (MLB)", destLine:"Career .292/.393/.525 MLB \u00b7 7x All-Star",
-      outcome:"7x All-Star. ACCAC elite 1B \u2192 D1 \u2192 MLB franchise player.",
-      proPath:"JUCO \u2192 Texas State (D1) \u2192 MLB Draft R8 2009 \u2192 MLB debut 2011",
-      similarity:["ops","kPct","iso","conf","pos","age"], tags:["power","ACCAC","MLB","1B","ceiling","All-Star"] },
-    { id:"h-1b3", name:"Ryan Howard", jucoSchool:"Maple Woods CC", jucoYear:1999, conf:"NJCAA R3", pos:"1B",
-      jucoLine:".364/.442/.672 \u00b7 1.114 OPS \u00b7 21.8% K \u00b7 1 SB", jucoOps:1.114, jucoKpct:21.8, jucoIso:0.308, age:19,
-      level:"MLB", dest:"SW Missouri State \u2192 Phillies (MLB)", destLine:"Career .258/.347/.515 MLB \u00b7 MVP \u00b7 382 HR",
-      outcome:"NL MVP 2006. Power-over-contact 1B. The comp when K% is high but ISO is elite.",
-      proPath:"JUCO \u2192 SW Missouri State (D1) \u2192 MLB Draft R5 2001 \u2192 MLB debut 2004",
-      similarity:["ops","kPct","iso","pos","age"], tags:["power","MLB","1B","MVP","HR","high-K"] },
-    { id:"h-dh1", name:"Nelson Cruz", jucoSchool:"Motlow State CC", jucoYear:1998, conf:"NJCAA R6", pos:"DH",
-      jucoLine:".352/.422/.602 \u00b7 1.024 OPS \u00b7 17.8% K \u00b7 6 SB", jucoOps:1.024, jucoKpct:17.8, jucoIso:0.250, age:19,
-      level:"MLB", dest:"Athletics (MLB, R2)", destLine:"Career .274/.340/.499 MLB \u00b7 464 HR",
-      outcome:"464 MLB HR. NJCAA R6 power DH/OF \u2192 MLB slugger for 20 seasons.",
-      proPath:"NJCAA \u2192 MLB Draft R2 1998 \u2192 MiLB \u2192 MLB debut 2005",
-      similarity:["ops","kPct","iso","pos","conf"], tags:["power","NJCAA R6","MLB","DH","500HR"] },
-    { id:"h-cf1", name:"Malik Langford", jucoSchool:"Navarro College", jucoYear:2022, conf:"NJCAA R14", pos:"CF",
-      jucoLine:".364/.442/.562 \u00b7 1.004 OPS \u00b7 15.1% K \u00b7 26 SB", jucoOps:1.004, jucoKpct:15.1, jucoIso:0.198, age:20,
-      level:"D1", dest:"TCU (Big 12)", destLine:".271/.348/.444 \u00b7 .792 OPS \u00b7 14 SB yr 1",
-      outcome:"Power 5 starter yr 1. Drafted R4 2024. The gold standard for elite R14 CF profiles.",
-      similarity:["ops","kPct","iso","conf","age","pos"], tags:["speed","power","R14","D1","CF","drafted"] },
-    { id:"h-cf2", name:"Lorenzo Cain", jucoSchool:"Tallahassee CC", jucoYear:2004, conf:"GCAC", pos:"CF",
-      jucoLine:".318/.382/.468 \u00b7 .850 OPS \u00b7 16.8% K \u00b7 22 SB", jucoOps:0.850, jucoKpct:16.8, jucoIso:0.150, age:18,
-      level:"MLB", dest:"Brewers / Royals (MLB)", destLine:"Career .285/.340/.408 MLB \u00b7 2x All-Star \u00b7 WS champion",
-      outcome:"2x All-Star, WS champion. GCAC speed CF \u2192 MLB centerpiece.",
-      proPath:"JUCO \u2192 MLB Draft R17 2004 \u2192 MiLB \u2192 MLB debut 2010",
-      similarity:["ops","kPct","conf","pos","age"], tags:["speed","defense","GCAC","MLB","CF","tools"] },
-    { id:"h-3b1", name:"Ke'Bryan Hayes", jucoSchool:"Concordia Parish CC", jucoYear:2016, conf:"NJCAA R6", pos:"3B",
-      jucoLine:".342/.412/.528 \u00b7 .940 OPS \u00b7 12.4% K \u00b7 8 SB", jucoOps:0.940, jucoKpct:12.4, jucoIso:0.186, age:19,
-      level:"MLB", dest:"Pittsburgh Pirates (MLB, R1)", destLine:"Career .258/.324/.421 MLB \u00b7 Gold Glove",
-      outcome:"Gold Glove 3B. NJCAA R6 contact corner bat \u2192 D1 \u2192 MLB starter by 22.",
-      proPath:"NJCAA \u2192 LSU (D1) \u2192 MLB Draft R1 2015 \u2192 MLB debut 2019",
-      similarity:["ops","kPct","pos","age","conf"], tags:["defense","contact","NJCAA R6","MLB","3B"] },
-    { id:"h-spd1", name:"Billy Hamilton", jucoSchool:"Jones County JC", jucoYear:2009, conf:"NJCAA R5", pos:"CF",
-      jucoLine:".302/.378/.388 \u00b7 .766 OPS \u00b7 16.8% K \u00b7 48 SB", jucoOps:0.766, jucoKpct:16.8, jucoIso:0.086, age:18,
-      level:"MLB", dest:"Cincinnati Reds (MLB, R2)", destLine:"Career .231/.280/.295 MLB \u00b7 Elite CF",
-      outcome:"Elite CF defender and baserunner. Low OPS did not matter \u2014 speed carried the career.",
-      proPath:"JUCO \u2192 MLB Draft R2 2009 \u2192 MiLB \u2192 MLB debut 2013",
-      similarity:["ops","kPct","pos"], tags:["speed","defense","NJCAA R5","MLB","CF"] },
-  ],
-  pitchers: [
-    { id:"p-acc1", name:"Marcus Hill", jucoSchool:"Pima Community College", jucoYear:2024, conf:"ACCAC", pos:"RP",
-      jucoLine:"1.92 ERA \u00b7 0.94 WHIP \u00b7 12.8 K/9 \u00b7 95 mph", jucoEra:1.92, jucoK9:12.8, velo:95, age:21,
-      level:"D1", dest:"Arizona (Pac-12)", destLine:"3.12 ERA \u00b7 10.6 K/9 yr 1",
-      outcome:"Pac-12 high-leverage closer yr 1. ACCAC elite reliever with velocity \u2192 Power 5.",
-      similarity:["era","k9","velo","conf","role"], tags:["velocity","ACCAC","D1","RP","closer"] },
-    { id:"p-acc2", name:"Paul Skenes", jucoSchool:"Air Force JUCO", jucoYear:2021, conf:"NJCAA R9-adjacent", pos:"SP",
-      jucoLine:"1.58 ERA \u00b7 0.82 WHIP \u00b7 14.2 K/9 \u00b7 98 mph", jucoEra:1.58, jucoK9:14.2, velo:98, age:19,
-      level:"MLB", dest:"LSU (SEC) \u2192 Pittsburgh Pirates (#1 pick)", destLine:"MLB debut 2024 \u00b7 Instant ace",
-      outcome:"#1 overall pick 2023. Elite velocity from JUCO-adjacent program \u2192 LSU \u2192 MLB ace within 2 years.",
-      proPath:"Military JUCO \u2192 LSU (D1) \u2192 MLB Draft #1 overall 2023 \u2192 MLB debut 2024",
-      similarity:["era","k9","velo","age"], tags:["velocity","MLB","SP","#1pick","ceiling"] },
-    { id:"p-vel1", name:"Gerrit Cole", jucoSchool:"Santa Monica College", jucoYear:2011, conf:"CCCAA-S", pos:"SP",
-      jucoLine:"1.94 ERA \u00b7 0.88 WHIP \u00b7 13.8 K/9 \u00b7 97 mph", jucoEra:1.94, jucoK9:13.8, velo:97, age:20,
-      level:"MLB", dest:"UCLA (Pac-12) \u2192 Pirates (#1 pick)", destLine:"Career 3.09 ERA MLB \u00b7 $324M contract",
-      outcome:"#1 overall pick after D1. MLB ace, $324M. The ceiling comp for any elite JUCO arm.",
-      proPath:"JUCO \u2192 UCLA \u2192 MLB Draft #1 overall 2011 \u2192 MLB debut 2013",
-      similarity:["era","k9","velo"], tags:["velocity","CCCAA-S","MLB","SP","ceiling","$300M"] },
-    { id:"p-sp4", name:"Jacob deGrom", jucoSchool:"Stetson JUCO path", jucoYear:2010, conf:"ACCAC-adjacent", pos:"SP",
-      jucoLine:"1.78 ERA \u00b7 0.88 WHIP \u00b7 13.2 K/9 \u00b7 97 mph", jucoEra:1.78, jucoK9:13.2, velo:97, age:21,
-      level:"MLB", dest:"New York Mets (MLB, R9)", destLine:"Career 2.52 ERA MLB \u00b7 2x Cy Young",
-      outcome:"2x Cy Young. Late-bloomer elite arm. The ceiling for any SP with elite K/9 and improving velocity.",
-      proPath:"Late-development SP \u2192 Stetson (D1) \u2192 MLB Draft R9 2010 \u2192 MLB debut 2014",
-      similarity:["era","k9","velo","age"], tags:["velocity","MLB","SP","Cy Young","ceiling","late-bloomer"] },
-    { id:"p-sp5", name:"Shane Bieber", jucoSchool:"UC Santa Barbara path", jucoYear:2016, conf:"Big West-adjacent", pos:"SP",
-      jucoLine:"2.08 ERA \u00b7 0.94 WHIP \u00b7 12.4 K/9 \u00b7 92 mph", jucoEra:2.08, jucoK9:12.4, velo:92, age:20,
-      level:"MLB", dest:"Cleveland Guardians (MLB, R4)", destLine:"Career 3.11 ERA MLB \u00b7 Cy Young 2020",
-      outcome:"Cy Young 2020. Command-first SP who lit up JUCO metrics. The comp for elite K/9 without elite velocity.",
-      proPath:"Prep \u2192 UCSB (D1) \u2192 MLB Draft R4 2016 \u2192 MLB debut 2018",
-      similarity:["era","k9","age"], tags:["command","MLB","SP","Cy Young","low-velo","ceiling"] },
-    { id:"p-vel3", name:"Blake Snell", jucoSchool:"Shoreline CC", jucoYear:2012, conf:"NWAC", pos:"SP",
-      jucoLine:"2.24 ERA \u00b7 1.08 WHIP \u00b7 11.8 K/9 \u00b7 92 mph", jucoEra:2.24, jucoK9:11.8, velo:92, age:19,
-      level:"MLB", dest:"Tampa Bay Rays (MLB, R1)", destLine:"Career 3.28 ERA MLB \u00b7 2x Cy Young",
-      outcome:"2x Cy Young. NWAC LHP \u2192 MLB ace. Velocity improved dramatically with D1 development.",
-      proPath:"JUCO \u2192 MLB Draft R1 2011 \u2192 MiLB \u2192 MLB debut 2016",
-      similarity:["era","k9","velo","age"], tags:["velocity","MLB","SP","NWAC","LHP","Cy Young"] },
-    { id:"p-cmd2", name:"Jamie Moyer", jucoSchool:"Saint Joseph's CC", jucoYear:1984, conf:"Northeast JUCO", pos:"SP",
-      jucoLine:"2.88 ERA \u00b7 1.18 WHIP \u00b7 7.8 K/9 \u00b7 84 mph", jucoEra:2.88, jucoK9:7.8, velo:84, age:21,
-      level:"MLB", dest:"Saint Joseph's (A-10) \u2192 Cubs (MLB)", destLine:"Career 3.67 ERA MLB \u00b7 269 wins",
-      outcome:"269 MLB wins. Sub-90 mph finesse LHP from Northeast JUCO \u2192 MLB starter for 25 years.",
-      proPath:"JUCO \u2192 St. Joseph's (D1) \u2192 MLB Draft R6 1984 \u2192 MLB debut 1986",
-      similarity:["era","k9","velo","age"], tags:["command","MLB","SP","Northeast","LHP","floor"] },
-    { id:"p-cmd3", name:"Kyle Hendricks", jucoSchool:"Dartmouth path", jucoYear:2011, conf:"Ivy-adjacent", pos:"SP",
-      jucoLine:"2.84 ERA \u00b7 1.14 WHIP \u00b7 8.4 K/9 \u00b7 85 mph", jucoEra:2.84, jucoK9:8.4, velo:85, age:21,
-      level:"MLB", dest:"Texas Rangers (MLB, R8)", destLine:"Career 3.43 ERA MLB \u00b7 WS champion",
-      outcome:"WS champion. Sub-90 mph finesse SP with elite command. Floor comp for any low-velo control artist.",
-      proPath:"Dartmouth (D1, Ivy) \u2192 MLB Draft R8 2011 \u2192 MiLB \u2192 MLB debut 2014",
-      similarity:["era","k9","velo","age"], tags:["command","MLB","SP","low-velo","Ivy","floor","finesse"] },
-    { id:"p-rp3", name:"Josh Hader", jucoSchool:"Old Mill HS / MD area", jucoYear:2012, conf:"NJCAA R2-adjacent", pos:"RP",
-      jucoLine:"1.88 ERA \u00b7 0.88 WHIP \u00b7 14.4 K/9 \u00b7 94 mph", jucoEra:1.88, jucoK9:14.4, velo:94, age:18,
-      level:"MLB", dest:"Baltimore Orioles (MLB, R5)", destLine:"Career 2.60 ERA MLB \u00b7 5x All-Star \u00b7 elite closer",
-      outcome:"5x All-Star closer. Mid-Atlantic arm \u2192 MLB ace reliever. Elite K/9 RP profile \u2014 the ceiling for closers.",
-      proPath:"MD prep \u2192 MLB Draft R5 2012 \u2192 MiLB \u2192 MLB debut 2017",
-      similarity:["era","k9","velo","role","age"], tags:["velocity","MLB","RP","closer","ceiling","Mid-Atlantic"] },
-    { id:"p-rp4", name:"Edwin Diaz", jucoSchool:"Caguas JUCO", jucoYear:2012, conf:"PR JUCO", pos:"RP",
-      jucoLine:"1.64 ERA \u00b7 0.82 WHIP \u00b7 14.8 K/9 \u00b7 98 mph", jucoEra:1.64, jucoK9:14.8, velo:98, age:18,
-      level:"MLB", dest:"Seattle Mariners (MLB, R3)", destLine:"Career 2.78 ERA MLB \u00b7 5x All-Star closer",
-      outcome:"5x All-Star, elite closer. JUCO-adjacent elite RP arm \u2192 MLB franchise closer.",
-      proPath:"PR JUCO \u2192 MLB Draft R3 2012 \u2192 MiLB \u2192 MLB debut 2016",
-      similarity:["era","k9","velo","role","age"], tags:["velocity","MLB","RP","closer","ceiling","98mph"] },
-  ],
-};
+
+// ── Comp pool loaded from SheetDB (sheet=Comps) ───────────────────────────
+// COMP_DB is now fetched at runtime — no hardcoded data here.
+// Parse a raw SheetDB comp row into the shape calcSimilarity expects.
+function parseComp(row) {
+  const num = v => (v === "" || v == null) ? null : Number(v);
+  const str = v => (v === "" || v == null) ? null : String(v).trim();
+  return {
+    id:         str(row.id),
+    type:       str(row.type),       // "hitter" | "pitcher"
+    name:       str(row.name),
+    pos:        str(row.pos),
+    jucoSchool: str(row.jucoSchool),
+    jucoYear:   num(row.jucoYear),
+    conf:       str(row.conf),
+    jucoLine:   str(row.jucoLine),
+    // hitter stats
+    jucoOps:    num(row.jucoOps),
+    jucoKpct:   num(row.jucoKpct),
+    jucoIso:    num(row.jucoIso),
+    // pitcher stats
+    jucoEra:    num(row.jucoEra),
+    jucoK9:     num(row.jucoK9),
+    velo:       num(row.velo),
+    // shared
+    age:        num(row.age),
+    level:      str(row.level),      // "D1" | "MLB" | "MiLB"
+    dest:       str(row.dest),
+    destLine:   str(row.destLine),
+    outcome:    str(row.outcome),
+    proPath:    str(row.proPath),
+    tags:       row.tags ? String(row.tags).split(',').map(t => t.trim()) : [],
+  };
+}
 
 function calcSimilarity(player, comp) {
   let score = 0, maxScore = 0;
@@ -410,8 +274,10 @@ function calcSimilarity(player, comp) {
   return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
 }
 
-function getTopComps(player, n=3) {
-  const pool = player.isPitcher ? COMP_DB.pitchers : COMP_DB.hitters;
+function getTopComps(player, comps, n=3) {
+  // comps is the live array fetched from SheetDB (flat, parsed by parseComp)
+  const wantType = player.isPitcher ? "pitcher" : "hitter";
+  const pool = comps.filter(c => c.type === wantType);
   return pool.map(c => ({ ...c, score: calcSimilarity(player, c) })).sort((a,b) => b.score - a.score).slice(0, n);
 }
 
@@ -554,7 +420,7 @@ function ErrorScreen({onRetry}) {
   </div>;
 }
 
-function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onNote, asDrawer=false}) {
+function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onNote, comps=[], asDrawer=false}) {
   const [tab, setTab] = useState("overview");
   const [noteText, setNoteText] = useState("");
   if (!player) return null;
@@ -632,15 +498,19 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
   </div>;
 
   const compsContent = (() => {
-    const comps = getTopComps(p, 4);
-    const mlbComps = comps.filter(c => c.level === "MLB");
+    const topComps = getTopComps(p, comps, 4);
+    const mlbComps = topComps.filter(c => c.level === "MLB");
     const levelColor = {"D1":"#93c5fd","MiLB":"#a78bfa","MLB":"#f6ad55"};
     const levelBg    = {"D1":"rgba(147,197,253,.1)","MiLB":"rgba(167,139,250,.1)","MLB":"rgba(246,173,85,.12)"};
     return <div>
       <div style={{...S.label,marginBottom:4}}>Historical Comparable Players</div>
-      <p style={{fontSize:11,color:"#4a5568",marginBottom:14,lineHeight:1.5}}>Matched by {p.isPitcher?"ERA, K/9, velocity":"OPS, K%, ISO"}, conference, age, and position.</p>
-      {comps.length===0 && <p style={{fontSize:13,color:"#4a5568",fontStyle:"italic"}}>No comps found.</p>}
-      {comps.map(c => (
+      <p style={{fontSize:11,color:"#4a5568",marginBottom:14,lineHeight:1.5}}>Matched by {p.isPitcher?"ERA, K/9, velocity":"OPS, K%, ISO"}, conference, age, and position. Similarity score 0–100.</p>
+      {comps.length === 0 && <div style={{padding:"20px 0",textAlign:"center"}}>
+        <div style={{width:18,height:18,border:"2px solid rgba(246,173,85,.2)",borderTop:"2px solid #f6ad55",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 8px"}}/>
+        <p style={{fontSize:12,color:"#4a5568"}}>Loading comps from database...</p>
+      </div>}
+      {comps.length > 0 && topComps.length===0 && <p style={{fontSize:13,color:"#4a5568",fontStyle:"italic"}}>No comps found.</p>}
+      {topComps.map(c => (
         <div key={c.id} style={{...S.card,marginBottom:10,padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
             <div style={{flex:1}}>
@@ -828,6 +698,8 @@ function App() {
   const [pipeline, setPipeline] = useLocalStorage("dbp_pipeline26", {});
   const [notes, setNotes]       = useLocalStorage("dbp_notes26", {});
   const [visibleCount, setVisibleCount] = useState(20);
+  const [comps, setComps]               = useState([]);
+  const [compsLoaded, setCompsLoaded]   = useState(false);
 
   const fetchPlayers = useCallback(() => {
     setLoadState("loading");
@@ -838,6 +710,13 @@ function App() {
   }, []);
 
   useEffect(() => { fetchPlayers(); }, [fetchPlayers]);
+
+  useEffect(() => {
+    fetch(SHEETDB_URL + "?sheet=Comps&limit=200")
+      .then(r => r.ok ? r.json() : [])
+      .then(rows => { setComps(rows.map(parseComp)); setCompsLoaded(true); })
+      .catch(() => setCompsLoaded(true)); // fail silently — comps are non-critical
+  }, []);
 
   useEffect(() => {
     const h = e => {
@@ -1293,7 +1172,7 @@ function App() {
         <div style={{flex:1,overflow:"hidden"}}>
           <PlayerDetail player={selPlayer} targetConf={targetConf} onClose={() => setSelected(null)}
             watched={inPipeline(selPlayer.id)} onWatch={id => inPipeline(id)?removeFromPipeline(id):addToPipeline(id)}
-            notes={notes} onNote={onNote} asDrawer={true}/>
+            notes={notes} onNote={onNote} comps={comps} asDrawer={true}/>
         </div>
       </div>}
 
