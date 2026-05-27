@@ -71,11 +71,11 @@ const CONF_SOURCE = {
   "NJCAA R14":   { rating:0.88, transfers:118, d1Rate:64 },
   "GCAC":        { rating:0.84, transfers:97,  d1Rate:59 },
   "MCCAA":       { rating:0.79, transfers:63,  d1Rate:51 },
-  "NJCAA R1":    { rating:0.81, transfers:88,  d1Rate:55 },
+  "NJCAA R1":    { rating:0.90, transfers:142, d1Rate:68 },  // Same as ACCAC (Arizona)
   "NJCAA R2":    { rating:0.80, transfers:72,  d1Rate:52 },
   "NJCAA R3":    { rating:0.74, transfers:38,  d1Rate:44 },
   "NJCAA R4":    { rating:0.82, transfers:84,  d1Rate:57 },
-  "NJCAA R5":    { rating:0.81, transfers:76,  d1Rate:55 },
+  "NJCAA R5":    { rating:0.84, transfers:76,  d1Rate:59 },  // Bumped: NM/SE stronger than avg R5
   "NJCAA R6":    { rating:0.86, transfers:94,  d1Rate:62 },
   "NJCAA R7":    { rating:0.76, transfers:81,  d1Rate:49 },
   "NJCAA R8":    { rating:0.70, transfers:44,  d1Rate:42 },
@@ -111,7 +111,9 @@ function computeGemScore(player) {
   const src = CONF_SOURCE[player.conf] || { rating: 0.79 };
   if (!player.isPitcher && player.juco) {
     const norm = player.juco.ops * src.rating;
-    let reg = norm > 0.900 ? 0.88 - (norm - 0.900) * 0.12 : norm > 0.780 ? 0.91 : 0.94;
+    let reg = norm > 0.980 ? Math.max(0.62, 0.79 - (norm - 0.980) * 0.22)
+              : norm > 0.900 ? 0.88 - (norm - 0.900) * 0.12
+              : norm > 0.780 ? 0.91 : 0.94;
     const projOps = norm * reg * CONF_TARGETS["C-USA"].opsMult / 0.828;
     const opsPts = Math.min(70, Math.max(0, Math.round((projOps - 0.600) / 0.300 * 70)));
     const agePts = player.age <= 19 ? 10 : player.age === 20 ? 7 : player.age === 21 ? 4 : 0;
@@ -328,8 +330,14 @@ function projectToConf(player, targetConf) {
   if (!player.isPitcher && player.juco) {
     const jucoOps = player.juco.ops;
     const normalizedOps = jucoOps * source.rating;
+    const isP5 = ["SEC","Big 12","ACC","Pac-12","Big Ten","AAC"].includes(targetConf);
     let regressionFactor;
-    if (normalizedOps > 0.900) { regressionFactor = 0.88 - (normalizedOps - 0.900) * 0.12; }
+    if (normalizedOps > 0.980) {
+      const excess = normalizedOps - 0.980;
+      regressionFactor = isP5
+        ? Math.max(0.62, 0.79 - excess * 0.22)
+        : Math.max(0.72, 0.86 - excess * 0.10);
+    } else if (normalizedOps > 0.900) { regressionFactor = 0.88 - (normalizedOps - 0.900) * 0.12; }
     else if (normalizedOps > 0.780) { regressionFactor = 0.91; }
     else { regressionFactor = 0.94; }
     const projOps = Math.round(normalizedOps * regressionFactor * target.opsMult / 0.828 * 1000) / 1000;
@@ -845,7 +853,7 @@ function App() {
 
     {!isMobile && <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",height:52,borderBottom:"1px solid rgba(255,255,255,.07)",background:"#0a0f1a",position:"sticky",top:0,zIndex:20,flexShrink:0}}>
       <div style={{display:"flex",alignItems:"center",gap:14}}>
-        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:2,color:"#f6ad55"}}>DRAFTBOARD<span style={{color:"#4a5568",marginLeft:2}}>PRO</span> <span style={{fontSize:11,color:"#4a5568",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>v2.1</span></div>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,letterSpacing:2,color:"#f6ad55"}}>DRAFTBOARD<span style={{color:"#4a5568",marginLeft:2}}>PRO</span> <span style={{fontSize:11,color:"#4a5568",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>v2.2</span></div>
         <div style={{width:1,height:20,background:"rgba(255,255,255,.08)"}}/>
         {[["board","Scout Board"],["pipeline",`Pipeline (${Object.keys(pipeline).length})`],["conferences","Conferences"]].map(([v,lbl]) => (
           <button key={v} onClick={() => setView(v)} style={{background:view===v?"rgba(246,173,85,.08)":"none",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:13,padding:"6px 10px",borderRadius:4,color:view===v?"#f6ad55":"#718096"}}>{lbl}</button>
