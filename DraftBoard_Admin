@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DraftBoard Pro — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0C111B;--surface:#131B27;--surface2:#1A2438;--surface3:#212E42;
+  --border:#263044;--border2:#2E3D56;
+  --gold:#F6AD55;--gold2:#ECC94B;--blue:#63B3ED;--green:#68D391;
+  --red:#FC8181;--purple:#B794F4;--teal:#4FD1C5;
+  --text:#E2E8F0;--muted:#94A3B8;--dim:#4A5568;
+  --font-head:'Syne',sans-serif;--font-mono:'DM Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;line-height:1.6;min-height:100vh}
+
+/* ── Layout ── */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column}
+.main{overflow:hidden;display:flex;flex-direction:column}
+
+/* ── Sidebar ── */
+.logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{font-size:16px;font-weight:800;color:var(--gold);letter-spacing:1px}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.nav{flex:1;padding:12px 0}
+.nav-section{padding:8px 18px 4px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 18px;cursor:pointer;color:var(--muted);transition:all .15s;border-left:2px solid transparent}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--surface2)}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.sidebar-stats{padding:14px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.stat-row{display:flex;justify-content:space-between;padding:3px 0}
+.stat-val{color:var(--gold);font-weight:500}
+
+/* ── Header ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);background:var(--surface)}
+.page-title{font-size:14px;font-weight:600;color:var(--text);letter-spacing:.5px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.status-dot.red{background:var(--red)}
+.status-dot.yellow{background:var(--gold2)}
+.status-label{font-size:11px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:5px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-family:var(--font-mono);font-size:12px;transition:all .15s}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.btn.primary{background:var(--gold);color:#000;border-color:var(--gold);font-weight:500}
+.btn.primary:hover{background:var(--gold2)}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn.danger:hover{background:rgba(252,129,129,.1)}
+.btn.small{padding:4px 10px;font-size:11px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Content panels ── */
+.panel{display:none;flex:1;overflow:hidden;flex-direction:column}
+.panel.active{display:flex}
+.panel-body{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* ── Stats bar ── */
+.stats-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stat-card{background:var(--surface);padding:16px 20px}
+.stat-card-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.stat-card-val{font-size:22px;font-weight:700;color:var(--gold);font-family:var(--font-head)}
+.stat-card-sub{font-size:11px;color:var(--dim);margin-top:2px}
+
+/* ── Table ── */
+.table-wrap{border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.table-controls{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+.search-box{flex:1;display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 10px}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-family:var(--font-mono);font-size:12px;width:100%}
+.search-box input::placeholder{color:var(--dim)}
+select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-family:var(--font-mono);font-size:12px;outline:none;cursor:pointer}
+select:focus{border-color:var(--gold)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--surface);padding:9px 12px;text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--text)}
+th.sorted{color:var(--gold)}
+td{padding:9px 12px;border-bottom:1px solid rgba(38,48,68,.5);vertical-align:middle;white-space:nowrap}
+tr:hover td{background:var(--surface2)}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:500;letter-spacing:.3px}
+.badge.pos-sp{background:rgba(99,179,237,.15);color:var(--blue)}
+.badge.pos-rp{background:rgba(129,140,248,.15);color:#A5B4FC}
+.badge.pos-c{background:rgba(104,211,145,.15);color:var(--green)}
+.badge.pos-1b,.badge.pos-2b,.badge.pos-3b,.badge.pos-ss{background:rgba(246,173,85,.15);color:var(--gold)}
+.badge.pos-lf,.badge.pos-rf,.badge.pos-cf{background:rgba(79,209,197,.15);color:var(--teal)}
+.badge.pos-dh{background:rgba(252,129,129,.15);color:var(--red)}
+.badge.hot{background:rgba(252,129,129,.2);color:var(--red)}
+.badge.rising{background:rgba(246,173,85,.2);color:var(--gold)}
+.badge.available{background:rgba(104,211,145,.1);color:var(--green)}
+.badge.committed{background:rgba(99,179,237,.1);color:var(--blue)}
+.badge.signed{background:rgba(179,122,244,.1);color:var(--purple)}
+.badge.drafted{background:rgba(246,173,85,.1);color:var(--gold)}
+.gem-bar{display:inline-flex;align-items:center;gap:6px}
+.gem-fill{height:4px;border-radius:2px;background:var(--gold);transition:width .3s}
+.gem-num{font-size:11px;color:var(--muted);min-width:24px}
+.actions-cell{display:flex;gap:4px;opacity:0}
+tr:hover .actions-cell{opacity:1}
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surface);border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.page-btns{display:flex;gap:4px}
+.page-btn{padding:4px 8px;border:1px solid var(--border);border-radius:3px;background:var(--surface2);color:var(--muted);cursor:pointer;font-family:var(--font-mono);font-size:11px}
+.page-btn:hover,.page-btn.active{border-color:var(--gold);color:var(--gold)}
+
+/* ── Modal ── */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:8px;width:640px;max-height:90vh;overflow-y:auto;padding:24px}
+.modal-title{font-size:14px;font-weight:600;color:var(--gold);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.form-input{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px 10px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--gold)}
+.form-section{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);padding:12px 0 6px;border-bottom:1px solid var(--border);grid-column:1/-1;margin-top:4px}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* ── Push panel ── */
+.push-section{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;margin-bottom:20px}
+.push-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.push-desc{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.7}
+.upload-zone{border:1px dashed var(--border2);border-radius:5px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s}
+.upload-zone:hover{border-color:var(--gold)}
+.upload-zone.dragover{border-color:var(--gold);background:rgba(246,173,85,.05)}
+.upload-zone p{color:var(--muted);font-size:12px;margin-top:8px}
+.log-area{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:12px;height:160px;overflow-y:auto;font-size:11px;color:var(--muted)}
+.log-line{padding:2px 0;border-bottom:1px solid rgba(38,48,68,.4)}
+.log-line.ok{color:var(--green)}
+.log-line.err{color:var(--red)}
+.log-line.info{color:var(--blue)}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin:10px 0}
+.progress-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .3s;width:0%}
+
+/* ── Conf panel ── */
+.conf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.conf-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px}
+.conf-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px}
+.conf-rating{font-size:24px;font-weight:700;color:var(--gold);font-family:var(--font-head)}
+.conf-meta{font-size:10px;color:var(--muted);margin-top:4px}
+.rating-slider{width:100%;margin:8px 0;accent-color:var(--gold)}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:12px 18px;font-size:12px;color:var(--text);z-index:200;transform:translateY(80px);opacity:0;transition:all .3s;max-width:340px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">DRAFTBOARD</div>
+      <div class="logo-sub">Admin Console</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Data</div>
+      <div class="nav-item active" onclick="switchPanel('players')"><div class="nav-dot"></div>Players</div>
+      <div class="nav-item" onclick="switchPanel('comps')"><div class="nav-dot"></div>Comps</div>
+      <div class="nav-section">Tools</div>
+      <div class="nav-item" onclick="switchPanel('push')"><div class="nav-dot"></div>Push Data</div>
+      <div class="nav-item" onclick="switchPanel('conf')"><div class="nav-dot"></div>Conf Ratings</div>
+      <div class="nav-item" onclick="switchPanel('scraper')"><div class="nav-dot"></div>Scraper</div>
+      <div class="nav-item" onclick="switchPanel('deploy')"><div class="nav-dot"></div>Deploy</div>
+    </nav>
+    <div class="sidebar-stats" id="sidebar-stats">
+      <div class="stat-row"><span>Players</span><span class="stat-val" id="ss-players">—</span></div>
+      <div class="stat-row"><span>Comps</span><span class="stat-val" id="ss-comps">—</span></div>
+      <div class="stat-row"><span>Confs</span><span class="stat-val" id="ss-confs">—</span></div>
+      <div class="stat-row"><span>DB</span><span class="stat-val" id="ss-db" style="color:var(--muted)">checking…</span></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <span class="page-title" id="page-title">Players</span>
+      <div class="topbar-right">
+        <div class="status-dot" id="conn-dot" style="background:var(--muted)"></div>
+        <span class="status-label" id="conn-label">Connecting…</span>
+        <button class="btn small" onclick="loadAll()">↺ Refresh</button>
+        <button class="btn primary small" id="add-btn" onclick="openAddModal()">+ Add Player</button>
+      </div>
+    </div>
+
+    <!-- Players panel -->
+    <div class="panel active" id="panel-players">
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat-card"><div class="stat-card-label">Total Players</div><div class="stat-card-val" id="stat-total">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Available</div><div class="stat-card-val" id="stat-avail">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Pitchers</div><div class="stat-card-val" id="stat-pitch">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Conferences</div><div class="stat-card-val" id="stat-conf">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Avg Gem</div><div class="stat-card-val" id="stat-gem">—</div></div>
+      </div>
+      <div class="panel-body">
+        <div class="table-wrap">
+          <div class="table-controls">
+            <div class="search-box"><span style="color:var(--muted)">⌕</span><input type="text" id="search" placeholder="Search name, school, conf…" oninput="filterPlayers()"></div>
+            <select id="filter-pos" onchange="filterPlayers()">
+              <option value="">All Positions</option>
+              <option>SP</option><option>RP</option><option>C</option>
+              <option>1B</option><option>2B</option><option>3B</option>
+              <option>SS</option><option>LF</option><option>CF</option>
+              <option>RF</option><option>DH</option>
+            </select>
+            <select id="filter-conf" onchange="filterPlayers()"><option value="">All Confs</option></select>
+            <select id="filter-status" onchange="filterPlayers()">
+              <option value="">All Status</option>
+              <option>available</option><option>committed</option><option>signed</option><option>drafted</option>
+            </select>
+            <select id="filter-year" onchange="filterPlayers()">
+              <option value="">All Years</option>
+              <option>2026</option><option>2027</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto">
+            <table id="players-table">
+              <thead>
+                <tr>
+                  <th onclick="sortBy('id')">ID</th>
+                  <th onclick="sortBy('name')">Name</th>
+                  <th onclick="sortBy('pos')">Pos</th>
+                  <th onclick="sortBy('conf')">Conf</th>
+                  <th onclick="sortBy('school')">School</th>
+                  <th onclick="sortBy('year')">Yr</th>
+                  <th onclick="sortBy('gemScore')">Gem</th>
+                  <th onclick="sortBy('juco_ops')">OPS</th>
+                  <th onclick="sortBy('proj_ops')">Proj</th>
+                  <th onclick="sortBy('status')">Status</th>
+                  <th onclick="sortBy('flag')">Flag</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="players-body"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span id="page-info">—</span>
+            <div class="page-btns" id="page-btns"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comps panel -->
+    <div class="panel" id="panel-comps">
+      <div class="panel-body">
+        <div class="table-wrap">
+          <div class="table-controls">
+            <div class="search-box"><span style="color:var(--muted)">⌕</span><input type="text" id="comps-search" placeholder="Search name, conf, tags…" oninput="filterComps()"></div>
+            <select id="comps-type" onchange="filterComps()"><option value="">Hitters + Pitchers</option><option value="hitter">Hitters</option><option value="pitcher">Pitchers</option></select>
+            <select id="comps-level" onchange="filterComps()"><option value="">All Levels</option><option>D1</option><option>MLB</option></select>
+            <select id="comps-conf" onchange="filterComps()"><option value="">All Confs</option></select>
+            <button class="btn small" onclick="openAddCompModal()">+ Add Comp</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table id="comps-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Pos</th><th>JUCO School</th><th>Conf</th>
+                  <th>JUCO OPS / ERA</th><th>Dest</th><th>Level</th><th>Tags</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="comps-body"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span id="comps-page-info">—</span>
+            <div class="page-btns" id="comps-page-btns"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Push panel -->
+    <div class="panel" id="panel-push">
+      <div class="panel-body">
+        <div class="push-section">
+          <div class="push-title">📤 Bulk Push Players</div>
+          <p class="push-desc">Upload a CSV (matching the Players sheet columns) or paste JSON to push directly into the Google Sheet. Rows are appended — existing data is untouched. Max 500 rows per push to avoid rate limits.</p>
+          <div class="upload-zone" id="player-drop" ondragover="onDragOver(event,'player-drop')" ondragleave="onDragLeave(event,'player-drop')" ondrop="onDrop(event,'players')" onclick="document.getElementById('player-file').click()">
+            <div style="font-size:28px;color:var(--muted)">⬆</div>
+            <p>Drop CSV here or click to browse</p>
+            <p style="font-size:10px;margin-top:4px">players_wave*.csv — must match column headers</p>
+          </div>
+          <input type="file" id="player-file" accept=".csv,.json" style="display:none" onchange="readFile(event,'players')">
+          <div class="progress-bar"><div class="progress-fill" id="player-progress"></div></div>
+          <div class="log-area" id="player-log"><div class="log-line info">Waiting for file…</div></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn primary" id="push-players-btn" disabled onclick="pushPlayers()">Push to Sheet</button>
+            <button class="btn small" onclick="clearLog('player-log','player-progress')">Clear</button>
+          </div>
+        </div>
+
+        <div class="push-section">
+          <div class="push-title">🗂 Replace Comps Sheet</div>
+          <p class="push-desc">Upload the audited comps CSV to REPLACE all existing comp data. This deletes current comps and inserts the new set. Use with caution.</p>
+          <div class="upload-zone" id="comp-drop" ondragover="onDragOver(event,'comp-drop')" ondragleave="onDragLeave(event,'comp-drop')" ondrop="onDrop(event,'comps')" onclick="document.getElementById('comp-file').click()">
+            <div style="font-size:28px;color:var(--muted)">⬆</div>
+            <p>Drop Comps CSV here or click to browse</p>
+          </div>
+          <input type="file" id="comp-file" accept=".csv,.json" style="display:none" onchange="readFile(event,'comps')">
+          <div class="progress-bar"><div class="progress-fill" id="comp-progress"></div></div>
+          <div class="log-area" id="comp-log"><div class="log-line info">Waiting for file…</div></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn danger" id="push-comps-btn" disabled onclick="pushComps()">Replace Comps Sheet</button>
+            <button class="btn small" onclick="clearLog('comp-log','comp-progress')">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conf Ratings panel -->
+    <div class="panel" id="panel-conf">
+      <div class="panel-body">
+        <p style="color:var(--muted);font-size:12px;margin-bottom:20px">
+          These ratings live in the HTML code, not the sheet. Adjusting here shows you a preview — use the "Copy JS" button to get the updated CONF_SOURCE block to paste into the app code.
+        </p>
+        <div style="display:flex;gap:10px;margin-bottom:16px">
+          <button class="btn primary small" onclick="copyConfJS()">Copy JS Block</button>
+          <button class="btn small" onclick="resetConfs()">Reset to saved</button>
+        </div>
+        <div class="conf-grid" id="conf-grid"></div>
+      </div>
+    </div>
+
+    <!-- Scraper panel -->
+    <div class="panel" id="panel-scraper">
+      <div class="panel-body">
+        <div class="push-section">
+          <div class="push-title">🔍 TBC Player Lookup</div>
+          <p class="push-desc">Look up a player by name on TheBaseballCube to get their JUCO + D1 stats. Returns a pre-filled Add Player form ready to push.</p>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input type="text" id="tbc-name" class="form-input" placeholder="Player name (e.g. Brent Iredale)" style="flex:1">
+            <button class="btn primary" onclick="tbcLookup()">Look Up</button>
+          </div>
+          <div class="log-area" id="tbc-log"><div class="log-line info">Enter a player name above, then click Look Up. Opens TBC search in a new tab — paste the TBC player URL back here to extract stats.</div></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <input type="text" id="tbc-url" class="form-input" placeholder="Paste TBC player URL: https://www.thebaseballcube.com/content/player/XXXXX/" style="flex:1">
+            <button class="btn" onclick="openTBC()">Open Page</button>
+          </div>
+        </div>
+
+        <div class="push-section">
+          <div class="push-title">📋 Transfer List Parser</div>
+          <p class="push-desc">Paste a list of player names (one per line, or comma-separated) to batch-generate TBC search URLs for manual lookup.</p>
+          <textarea id="batch-names" class="form-input" style="width:100%;height:100px;resize:vertical" placeholder="Cade Climie&#10;Brent Iredale&#10;Cayden Gaskin&#10;…"></textarea>
+          <button class="btn primary small" style="margin-top:8px" onclick="batchSearch()">Generate Search URLs</button>
+          <div class="log-area" id="batch-log" style="margin-top:10px"><div class="log-line info">URLs will appear here.</div></div>
+        </div>
+
+        <div class="push-section">
+          <div class="push-title">🆕 Quick Add from Research</div>
+          <p class="push-desc">After looking up a player manually, fill in their stats below and push directly to the sheet in one click.</p>
+          <div class="form-grid" id="quick-add-form">
+            <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="qa-name" placeholder="Brent Iredale"></div>
+            <div class="form-group"><label class="form-label">Position</label>
+              <select class="form-input" id="qa-pos"><option>SP</option><option>RP</option><option>C</option><option>1B</option><option>2B</option><option>3B</option><option>SS</option><option>LF</option><option>CF</option><option>RF</option><option>DH</option></select>
+            </div>
+            <div class="form-group"><label class="form-label">JUCO School</label><input class="form-input" id="qa-school" placeholder="New Mexico JC"></div>
+            <div class="form-group"><label class="form-label">Conference</label>
+              <select class="form-input" id="qa-conf">
+                <option>ACCAC</option><option>NJCAA R14</option><option>GCAC</option><option>MCCAA</option>
+                <option>NJCAA R1</option><option>NJCAA R5</option><option>NJCAA R6</option><option>NJCAA R7</option>
+                <option>NJCAA R15</option><option>NJCAA R17</option><option>NJCAA R22</option><option>CCCAA</option>
+                <option>CCCAA-S</option><option>NWAC</option><option>FCSAA</option><option>NJCAA R4</option>
+                <option>NJCAA R21</option><option>NJCAA R24</option><option>WJCAC</option><option>SWJCAC</option>
+                <option>NJCAA R2</option><option>NJCAA R3</option><option>NJCAA R13</option><option>NJCAA R20</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">JUCO OPS</label><input class="form-input" id="qa-ops" type="number" step="0.001" placeholder="1.094"></div>
+            <div class="form-group"><label class="form-label">Year</label><input class="form-input" id="qa-year" type="number" value="2026"></div>
+            <div class="form-group"><label class="form-label">Hometown</label><input class="form-input" id="qa-hometown" placeholder="Roswell, NM"></div>
+            <div class="form-group"><label class="form-label">Gem Score</label><input class="form-input" id="qa-gem" type="number" placeholder="68"></div>
+          </div>
+          <button class="btn primary" style="margin-top:14px" onclick="quickAddPlayer()">Push Player to Sheet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deploy panel -->
+    <div class="panel" id="panel-deploy">
+      <div class="panel-body">
+
+        <div class="push-section">
+          <div class="push-title">🔗 GitHub Connection</div>
+          <p class="push-desc">Connected to <strong style="color:var(--gold)">jakecarvajal/draftboard-pro</strong> · branch: <strong style="color:var(--gold)">main</strong> · file: <strong style="color:var(--gold)">index.html</strong></p>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn small" onclick="githubFetch()">↺ Fetch current index.html</button>
+            <span id="gh-status" style="font-size:11px;color:var(--muted);align-self:center"></span>
+          </div>
+          <div class="log-area" id="gh-log" style="margin-top:10px"><div class="log-line info">Click "Fetch" to load the current deployed file.</div></div>
+        </div>
+
+        <div class="push-section" id="deploy-actions" style="display:none">
+          <div class="push-title">🚀 Push Changes</div>
+          <p class="push-desc">Select what to update, review the diff, then push. GitHub Pages will redeploy automatically (usually 60–90 seconds).</p>
+
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">What to push:</div>
+            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:12px">
+              <input type="checkbox" id="push-conf-ratings" checked style="accent-color:var(--gold)">
+              <span>Conference ratings (CONF_SOURCE) — sync sliders from Conf Ratings tab</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:12px">
+              <input type="checkbox" id="push-version" checked style="accent-color:var(--gold)">
+              <span>Version bump (auto-increment patch version in header)</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+              <input type="checkbox" id="push-custom-js" style="accent-color:var(--gold)">
+              <span>Custom JS patch (paste below)</span>
+            </label>
+          </div>
+
+          <div id="custom-js-area" style="display:none;margin-bottom:14px">
+            <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Custom JS / find-replace patch</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Find (exact string)</div>
+                <textarea id="patch-find" class="form-input" style="width:100%;height:80px;resize:vertical;font-size:11px" placeholder="const regressionFactor = 0.88..."></textarea>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Replace with</div>
+                <textarea id="patch-replace" class="form-input" style="width:100%;height:80px;resize:vertical;font-size:11px" placeholder="const regressionFactor = 0.79..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:14px">
+            <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Commit message</div>
+            <input type="text" id="commit-msg" class="form-input" value="Admin panel update — conf ratings + version bump" style="width:100%">
+          </div>
+
+          <div id="diff-preview" style="display:none;margin-bottom:14px">
+            <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Preview changes</div>
+            <div id="diff-content" style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:11px;max-height:200px;overflow-y:auto;white-space:pre-wrap;color:var(--muted)"></div>
+          </div>
+
+          <div style="display:flex;gap:8px">
+            <button class="btn small" onclick="previewDiff()">Preview diff</button>
+            <button class="btn primary" onclick="pushToGitHub()">Push to GitHub</button>
+          </div>
+          <div class="progress-bar" style="margin-top:10px"><div class="progress-fill" id="deploy-progress"></div></div>
+          <div class="log-area" id="deploy-log" style="margin-top:8px"></div>
+        </div>
+
+        <div class="push-section">
+          <div class="push-title">📄 Replace Full index.html</div>
+          <p class="push-desc">Upload the latest <code style="color:var(--gold)">DraftBoard_Pro_Updated.html</code> to fully replace the deployed file. This is the nuclear option — overwrites everything.</p>
+          <div class="upload-zone" id="deploy-drop" ondragover="onDragOver(event,'deploy-drop')" ondragleave="onDragLeave(event,'deploy-drop')" ondrop="onDropDeploy(event)" onclick="document.getElementById('deploy-file').click()">
+            <div style="font-size:28px;color:var(--muted)">⬆</div>
+            <p>Drop DraftBoard_Pro_Updated.html here</p>
+          </div>
+          <input type="file" id="deploy-file" accept=".html" style="display:none" onchange="readDeployFile(event)">
+          <div class="progress-bar"><div class="progress-fill" id="full-deploy-progress"></div></div>
+          <div class="log-area" id="full-deploy-log" style="margin-top:8px"><div class="log-line info">Waiting for file…</div></div>
+          <button class="btn danger" id="full-deploy-btn" disabled style="margin-top:10px" onclick="fullDeploy()">Replace index.html on GitHub</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add Player Modal -->
+<div class="modal-backdrop" id="modal-player">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-player-title">Add Player</span>
+      <button class="btn small" onclick="closeModal('modal-player')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-section">Identity</div>
+      <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="f-name"></div>
+      <div class="form-group"><label class="form-label">Position *</label>
+        <select class="form-input" id="f-pos"><option>SP</option><option>RP</option><option>C</option><option>1B</option><option>2B</option><option>3B</option><option>SS</option><option>LF</option><option>CF</option><option>RF</option><option>DH</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">School</label><input class="form-input" id="f-school"></div>
+      <div class="form-group"><label class="form-label">Conference</label>
+        <select class="form-input" id="f-conf">
+          <option>ACCAC</option><option>NJCAA R14</option><option>GCAC</option><option>MCCAA</option>
+          <option>NJCAA R1</option><option>NJCAA R5</option><option>NJCAA R6</option><option>NJCAA R7</option>
+          <option>NJCAA R4</option><option>NJCAA R15</option><option>NJCAA R17</option><option>NJCAA R22</option>
+          <option>CCCAA</option><option>CCCAA-S</option><option>NWAC</option><option>FCSAA</option>
+          <option>NJCAA R21</option><option>NJCAA R24</option><option>WJCAC</option><option>SWJCAC</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Year</label><input class="form-input" id="f-year" type="number" value="2026"></div>
+      <div class="form-group"><label class="form-label">Hometown</label><input class="form-input" id="f-hometown"></div>
+      <div class="form-group"><label class="form-label">Bats</label>
+        <select class="form-input" id="f-bats"><option>R</option><option>L</option><option>S</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Throws</label>
+        <select class="form-input" id="f-throws"><option>R</option><option>L</option></select>
+      </div>
+      <div class="form-section">JUCO Stats (Hitter)</div>
+      <div class="form-group"><label class="form-label">AVG</label><input class="form-input" id="f-avg" type="number" step="0.001"></div>
+      <div class="form-group"><label class="form-label">OBP</label><input class="form-input" id="f-obp" type="number" step="0.001"></div>
+      <div class="form-group"><label class="form-label">SLG</label><input class="form-input" id="f-slg" type="number" step="0.001"></div>
+      <div class="form-group"><label class="form-label">PA</label><input class="form-input" id="f-pa" type="number"></div>
+      <div class="form-group"><label class="form-label">HR</label><input class="form-input" id="f-hr" type="number" value="0"></div>
+      <div class="form-group"><label class="form-label">SB</label><input class="form-input" id="f-sb" type="number" value="0"></div>
+      <div class="form-group"><label class="form-label">BB%</label><input class="form-input" id="f-bbpct" type="number" step="0.1"></div>
+      <div class="form-group"><label class="form-label">K%</label><input class="form-input" id="f-kpct" type="number" step="0.1"></div>
+      <div class="form-section">Scouting</div>
+      <div class="form-group"><label class="form-label">Gem Score (0-100)</label><input class="form-input" id="f-gem" type="number" min="0" max="100"></div>
+      <div class="form-group"><label class="form-label">Risk Score (0-100)</label><input class="form-input" id="f-risk" type="number" min="0" max="100"></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-input" id="f-status"><option>available</option><option>committed</option><option>signed</option><option>drafted</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Flag</label>
+        <select class="form-input" id="f-flag"><option value="">None</option><option>HOT</option><option>RISING</option></select>
+      </div>
+      <div class="form-group full"><label class="form-label">Destination (if committed/signed/drafted)</label><input class="form-input" id="f-dest"></div>
+      <div class="form-group full"><label class="form-label">Notes</label><input class="form-input" id="f-notes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-player')">Cancel</button>
+      <button class="btn primary" onclick="savePlayer()">Save Player</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE = 'https://sheetdb.io/api/v1/gfe1gq37xjmxy';
+let allPlayers = [], allComps = [], filteredPlayers = [], filteredComps = [];
+let currentPage = 1, compsPage = 1;
+const PAGE_SIZE = 40;
+let sortKey = 'gemScore', sortDir = -1;
+let editingId = null;
+
+const CONF_SOURCE = {
+  "ACCAC":{"rating":0.90,"transfers":142,"d1Rate":68},
+  "NJCAA R14":{"rating":0.88,"transfers":118,"d1Rate":64},
+  "GCAC":{"rating":0.84,"transfers":97,"d1Rate":59},
+  "MCCAA":{"rating":0.79,"transfers":63,"d1Rate":51},
+  "NJCAA R1":{"rating":0.90,"transfers":142,"d1Rate":68},
+  "NJCAA R2":{"rating":0.80,"transfers":72,"d1Rate":52},
+  "NJCAA R3":{"rating":0.74,"transfers":38,"d1Rate":44},
+  "NJCAA R4":{"rating":0.82,"transfers":84,"d1Rate":57},
+  "NJCAA R5":{"rating":0.84,"transfers":76,"d1Rate":59},
+  "NJCAA R6":{"rating":0.86,"transfers":92,"d1Rate":62},
+  "NJCAA R7":{"rating":0.76,"transfers":81,"d1Rate":49},
+  "NJCAA R13":{"rating":0.80,"transfers":54,"d1Rate":53},
+  "NJCAA R15":{"rating":0.83,"transfers":71,"d1Rate":57},
+  "NJCAA R17":{"rating":0.85,"transfers":68,"d1Rate":60},
+  "NJCAA R20":{"rating":0.86,"transfers":62,"d1Rate":61},
+  "NJCAA R21":{"rating":0.84,"transfers":82,"d1Rate":60},
+  "NJCAA R22":{"rating":0.83,"transfers":62,"d1Rate":57},
+  "NJCAA R23":{"rating":0.81,"transfers":54,"d1Rate":55},
+  "NJCAA R24":{"rating":0.80,"transfers":54,"d1Rate":52},
+  "CCCAA":{"rating":0.82,"transfers":124,"d1Rate":56},
+  "CCCAA-S":{"rating":0.85,"transfers":128,"d1Rate":60},
+  "NWAC":{"rating":0.82,"transfers":68,"d1Rate":54},
+  "WJCAC":{"rating":0.84,"transfers":38,"d1Rate":58},
+  "FCSAA":{"rating":0.80,"transfers":88,"d1Rate":52},
+  "SWJCAC":{"rating":0.81,"transfers":32,"d1Rate":53},
+};
+let confRatings = JSON.parse(JSON.stringify(CONF_SOURCE));
+
+async function api(path, method='GET', body=null) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(BASE + path, opts);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+async function loadAll() {
+  setConn('checking');
+  try {
+    const [players, comps] = await Promise.all([
+      api('?sheet=Players&limit=2000'),
+      api('?sheet=Comps&limit=500')
+    ]);
+    allPlayers = players; allComps = comps;
+    setConn('ok');
+    updateStats();
+    populateFilters();
+    filterPlayers();
+    filterComps();
+    renderConfGrid();
+    updateSidebarStats();
+  } catch(e) {
+    setConn('error');
+    toast('Could not connect to SheetDB: ' + e.message, 'error');
+  }
+}
+
+function setConn(state) {
+  const dot = document.getElementById('conn-dot');
+  const lbl = document.getElementById('conn-label');
+  if(state==='ok'){dot.style.background='var(--green)';lbl.textContent='Connected';}
+  else if(state==='error'){dot.style.background='var(--red)';lbl.textContent='Error';}
+  else{dot.style.background='var(--muted)';lbl.textContent='Checking…';}
+}
+
+function updateStats() {
+  const total = allPlayers.length;
+  const avail = allPlayers.filter(p=>p.status==='available').length;
+  const pitch = allPlayers.filter(p=>String(p.isPitcher)==='true'||p.pos==='SP'||p.pos==='RP').length;
+  const confs = new Set(allPlayers.map(p=>p.conf).filter(Boolean)).size;
+  const gems = allPlayers.map(p=>parseFloat(p.gemScore)||0).filter(x=>x>0);
+  const avgGem = gems.length ? (gems.reduce((a,b)=>a+b,0)/gems.length).toFixed(1) : '—';
+  document.getElementById('stat-total').textContent = total.toLocaleString();
+  document.getElementById('stat-avail').textContent = avail.toLocaleString();
+  document.getElementById('stat-pitch').textContent = pitch.toLocaleString();
+  document.getElementById('stat-conf').textContent = confs;
+  document.getElementById('stat-gem').textContent = avgGem;
+}
+
+function updateSidebarStats() {
+  document.getElementById('ss-players').textContent = allPlayers.length;
+  document.getElementById('ss-comps').textContent = allComps.length;
+  document.getElementById('ss-confs').textContent = new Set(allPlayers.map(p=>p.conf).filter(Boolean)).size;
+  document.getElementById('ss-db').textContent = 'Live';
+  document.getElementById('ss-db').style.color = 'var(--green)';
+}
+
+function populateFilters() {
+  const confs = [...new Set(allPlayers.map(p=>p.conf).filter(Boolean))].sort();
+  const sel = document.getElementById('filter-conf');
+  sel.innerHTML = '<option value="">All Confs</option>' + confs.map(c=>`<option>${c}</option>`).join('');
+  const csel = document.getElementById('comps-conf');
+  const cconfs = [...new Set(allComps.map(c=>c.conf).filter(Boolean))].sort();
+  csel.innerHTML = '<option value="">All Confs</option>' + cconfs.map(c=>`<option>${c}</option>`).join('');
+}
+
+function filterPlayers() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const pos = document.getElementById('filter-pos').value;
+  const conf = document.getElementById('filter-conf').value;
+  const status = document.getElementById('filter-status').value;
+  const year = document.getElementById('filter-year').value;
+  filteredPlayers = allPlayers.filter(p => {
+    if(q && !`${p.name}${p.school}${p.conf}${p.hometown}`.toLowerCase().includes(q)) return false;
+    if(pos && p.pos !== pos) return false;
+    if(conf && p.conf !== conf) return false;
+    if(status && p.status !== status) return false;
+    if(year && String(p.year) !== year) return false;
+    return true;
+  });
+  filteredPlayers.sort((a,b) => {
+    const va = parseFloat(a[sortKey])||0, vb = parseFloat(b[sortKey])||0;
+    if(isNaN(parseFloat(a[sortKey]))) return (String(a[sortKey])||'').localeCompare(String(b[sortKey])||'');
+    return (va-vb)*sortDir;
+  });
+  currentPage = 1;
+  renderPlayers();
+}
+
+function renderPlayers() {
+  const start = (currentPage-1)*PAGE_SIZE;
+  const page = filteredPlayers.slice(start, start+PAGE_SIZE);
+  const tbody = document.getElementById('players-body');
+  tbody.innerHTML = page.map(p => {
+    const gem = parseFloat(p.gemScore)||0;
+    const ops = parseFloat(p.juco_ops||p.jucoP_era)||0;
+    const proj = parseFloat(p.proj_ops||p.proj_era)||0;
+    const posClass = `pos-${(p.pos||'').toLowerCase()}`;
+    const statLabel = p.isPitcher==='true'||p.pos==='SP'||p.pos==='RP'
+      ? (parseFloat(p.jucoP_era)||0).toFixed(2)+' ERA'
+      : ops ? ops.toFixed(3) : '—';
+    const projLabel = p.isPitcher==='true'||p.pos==='SP'||p.pos==='RP'
+      ? (parseFloat(p.proj_era)||0).toFixed(2)
+      : proj ? proj.toFixed(3) : '—';
+    return `<tr>
+      <td style="color:var(--dim)">${p.id||'—'}</td>
+      <td style="color:var(--text);font-weight:500">${p.name||'—'}</td>
+      <td><span class="badge ${posClass}">${p.pos||'—'}</span></td>
+      <td style="color:var(--muted)">${p.conf||'—'}</td>
+      <td style="color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis">${p.school||'—'}</td>
+      <td style="color:var(--muted)">${p.year||'—'}</td>
+      <td><div class="gem-bar"><div class="gem-fill" style="width:${gem}px;max-width:60px"></div><span class="gem-num">${gem||'—'}</span></div></td>
+      <td style="color:var(--teal)">${statLabel}</td>
+      <td style="color:var(--gold)">${projLabel}</td>
+      <td><span class="badge ${p.status||''}">${p.status||'—'}</span></td>
+      <td>${p.flag?`<span class="badge ${(p.flag||'').toLowerCase()}">${p.flag}</span>`:''}</td>
+      <td><div class="actions-cell">
+        <button class="btn small" onclick="editPlayer('${p.id}')">Edit</button>
+        <button class="btn small danger" onclick="deletePlayer('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">Del</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  const total = filteredPlayers.length;
+  const pages = Math.ceil(total/PAGE_SIZE);
+  document.getElementById('page-info').textContent = `${start+1}–${Math.min(start+PAGE_SIZE,total)} of ${total}`;
+  const btns = document.getElementById('page-btns');
+  btns.innerHTML = '';
+  for(let i=1;i<=Math.min(pages,8);i++){
+    const b = document.createElement('button');
+    b.className = 'page-btn' + (i===currentPage?' active':'');
+    b.textContent = i;
+    b.onclick = ()=>{currentPage=i;renderPlayers();};
+    btns.appendChild(b);
+  }
+  if(pages>8){
+    const s = document.createElement('span');
+    s.style.cssText='color:var(--muted);padding:4px 4px;font-size:11px';
+    s.textContent = `…${pages} pages`;
+    btns.appendChild(s);
+  }
+}
+
+function sortBy(key) {
+  if(sortKey===key) sortDir*=-1; else {sortKey=key;sortDir=-1;}
+  document.querySelectorAll('th.sorted').forEach(t=>t.classList.remove('sorted'));
+  filterPlayers();
+}
+
+function filterComps() {
+  const q = document.getElementById('comps-search').value.toLowerCase();
+  const type = document.getElementById('comps-type').value;
+  const level = document.getElementById('comps-level').value;
+  const conf = document.getElementById('comps-conf').value;
+  filteredComps = allComps.filter(c => {
+    if(q && !`${c.name}${c.conf}${c.tags}${c.jucoSchool}`.toLowerCase().includes(q)) return false;
+    if(type && c.type !== type) return false;
+    if(level && c.level !== level) return false;
+    if(conf && c.conf !== conf) return false;
+    return true;
+  });
+  compsPage = 1;
+  renderComps();
+}
+
+function renderComps() {
+  const start = (compsPage-1)*PAGE_SIZE;
+  const page = filteredComps.slice(start, start+PAGE_SIZE);
+  const tbody = document.getElementById('comps-body');
+  tbody.innerHTML = page.map(c => {
+    const stat = c.type==='pitcher' ? `${c.jucoEra||'—'} ERA / ${c.jucoK9||'—'} K/9` : `${c.jucoOps||'—'} OPS`;
+    const lvlColor = c.level==='MLB'?'var(--gold)':'var(--blue)';
+    const tags = (c.tags||'').split(',').slice(0,3).map(t=>`<span style="background:rgba(99,179,237,.1);color:var(--blue);padding:1px 5px;border-radius:2px;font-size:10px">${t.trim()}</span>`).join(' ');
+    return `<tr>
+      <td style="color:var(--text);font-weight:500">${c.name||'—'}</td>
+      <td><span class="badge pos-${(c.pos||'').toLowerCase()}">${c.pos||'—'}</span></td>
+      <td style="color:var(--muted);max-width:130px;overflow:hidden;text-overflow:ellipsis">${c.jucoSchool||'—'}</td>
+      <td style="color:var(--muted)">${c.conf||'—'}</td>
+      <td style="color:var(--teal)">${stat}</td>
+      <td style="color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis">${(c.dest||'—').replace(/\(.*?\)/g,'').trim()}</td>
+      <td style="color:${lvlColor};font-weight:500">${c.level||'—'}</td>
+      <td style="max-width:160px">${tags}</td>
+      <td><div class="actions-cell">
+        <button class="btn small danger" onclick="deleteComp('${c.id}','${(c.name||'').replace(/'/g,"\\'")}')">Del</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  const total = filteredComps.length;
+  const pages = Math.ceil(total/PAGE_SIZE);
+  document.getElementById('comps-page-info').textContent = `${start+1}–${Math.min(start+PAGE_SIZE,total)} of ${total}`;
+  const btns = document.getElementById('comps-page-btns');
+  btns.innerHTML = '';
+  for(let i=1;i<=Math.min(pages,8);i++){
+    const b = document.createElement('button');
+    b.className = 'page-btn'+(i===compsPage?' active':'');
+    b.textContent = i;
+    b.onclick = ()=>{compsPage=i;renderComps();};
+    btns.appendChild(b);
+  }
+}
+
+function switchPanel(name) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  const titles = {players:'Players',comps:'Comps',push:'Push Data',conf:'Conf Ratings',scraper:'Scraper',deploy:'Deploy'};
+  document.getElementById('page-title').textContent = titles[name]||name;
+  const addBtn = document.getElementById('add-btn');
+  addBtn.textContent = name==='comps'?'+ Add Comp':'+ Add Player';
+  addBtn.onclick = name==='comps'?openAddCompModal:openAddModal;
+  addBtn.style.display = name==='players'||name==='comps'?'':'none';
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-player-title').textContent = 'Add Player';
+  ['name','school','hostname','dest','notes','avg','obp','slg','pa','hr','sb','bbpct','kpct','gem','risk'].forEach(id=>{
+    const el = document.getElementById('f-'+id);
+    if(el) el.value='';
+  });
+  document.getElementById('modal-player').classList.add('open');
+}
+
+function editPlayer(id) {
+  const p = allPlayers.find(x=>String(x.id)===String(id));
+  if(!p) return;
+  editingId = id;
+  document.getElementById('modal-player-title').textContent = 'Edit Player — ' + p.name;
+  document.getElementById('f-name').value = p.name||'';
+  document.getElementById('f-pos').value = p.pos||'SP';
+  document.getElementById('f-school').value = p.school||'';
+  document.getElementById('f-conf').value = p.conf||'ACCAC';
+  document.getElementById('f-year').value = p.year||2026;
+  document.getElementById('f-hometown').value = p.hometown||'';
+  document.getElementById('f-bats').value = p.bats||'R';
+  document.getElementById('f-throws').value = p.throws||'R';
+  document.getElementById('f-avg').value = p.juco_avg||'';
+  document.getElementById('f-obp').value = p.juco_obp||'';
+  document.getElementById('f-slg').value = p.juco_slg||'';
+  document.getElementById('f-pa').value = p.juco_pa||'';
+  document.getElementById('f-hr').value = p.juco_hr||0;
+  document.getElementById('f-sb').value = p.juco_sb||0;
+  document.getElementById('f-bbpct').value = p.juco_bbPct||'';
+  document.getElementById('f-kpct').value = p.juco_kPct||'';
+  document.getElementById('f-gem').value = p.gemScore||'';
+  document.getElementById('f-risk').value = p.riskScore||'';
+  document.getElementById('f-status').value = p.status||'available';
+  document.getElementById('f-flag').value = p.flag||'';
+  document.getElementById('f-dest').value = p.dest||'';
+  document.getElementById('f-notes').value = p.notes||'';
+  document.getElementById('modal-player').classList.add('open');
+}
+
+async function savePlayer() {
+  const avg = parseFloat(document.getElementById('f-avg').value)||null;
+  const obp = parseFloat(document.getElementById('f-obp').value)||null;
+  const slg = parseFloat(document.getElementById('f-slg').value)||null;
+  const ops = (obp&&slg) ? Math.round((obp+slg)*1000)/1000 : null;
+  const iso = (slg&&avg) ? Math.round((slg-avg)*1000)/1000 : null;
+  const data = {
+    name: document.getElementById('f-name').value,
+    pos: document.getElementById('f-pos').value,
+    school: document.getElementById('f-school').value,
+    conf: document.getElementById('f-conf').value,
+    year: document.getElementById('f-year').value,
+    hometown: document.getElementById('f-hometown').value,
+    bats: document.getElementById('f-bats').value,
+    throws: document.getElementById('f-throws').value,
+    juco_avg: avg, juco_obp: obp, juco_slg: slg, juco_ops: ops, juco_iso: iso,
+    juco_pa: document.getElementById('f-pa').value||null,
+    juco_hr: document.getElementById('f-hr').value||0,
+    juco_sb: document.getElementById('f-sb').value||0,
+    juco_bbPct: document.getElementById('f-bbpct').value||null,
+    juco_kPct: document.getElementById('f-kpct').value||null,
+    gemScore: document.getElementById('f-gem').value||null,
+    riskScore: document.getElementById('f-risk').value||null,
+    status: document.getElementById('f-status').value,
+    flag: document.getElementById('f-flag').value||null,
+    dest: document.getElementById('f-dest').value||null,
+    notes: document.getElementById('f-notes').value||null,
+    isPitcher: ['SP','RP'].includes(document.getElementById('f-pos').value) ? 'true' : 'false',
+  };
+  if(!data.name) { toast('Name is required','error'); return; }
+  try {
+    if(editingId) {
+      await api(`/id/${editingId}?sheet=Players`, 'PATCH', {data});
+      toast(`Updated ${data.name}`,'success');
+    } else {
+      const maxId = allPlayers.reduce((m,p)=>Math.max(m,parseInt(p.id)||0),0);
+      data.id = maxId + 1;
+      await api('?sheet=Players', 'POST', {data:[data]});
+      toast(`Added ${data.name} (ID ${data.id})`,'success');
+    }
+    closeModal('modal-player');
+    await loadAll();
+  } catch(e) { toast('Save failed: '+e.message,'error'); }
+}
+
+async function deletePlayer(id, name) {
+  if(!confirm(`Delete ${name}? This cannot be undone.`)) return;
+  try {
+    await api(`/id/${id}?sheet=Players`,'DELETE');
+    toast(`Deleted ${name}`,'success');
+    await loadAll();
+  } catch(e) { toast('Delete failed: '+e.message,'error'); }
+}
+
+async function deleteComp(id, name) {
+  if(!confirm(`Delete comp: ${name}?`)) return;
+  try {
+    await api(`/id/${id}?sheet=Comps`,'DELETE');
+    toast(`Deleted comp ${name}`,'success');
+    await loadAll();
+  } catch(e) { toast('Delete failed: '+e.message,'error'); }
+}
+
+function openAddCompModal() { toast('Comp editing via Push Data panel — upload a full comps CSV.','info'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ── Conf grid ── */
+function renderConfGrid() {
+  const grid = document.getElementById('conf-grid');
+  grid.innerHTML = Object.entries(confRatings).map(([name,data])=>`
+    <div class="conf-card">
+      <div class="conf-name">${name}</div>
+      <div class="conf-rating" id="cr-val-${name.replace(/\s/g,'_')}">${data.rating.toFixed(2)}</div>
+      <input type="range" class="rating-slider" min="0.60" max="0.98" step="0.01" value="${data.rating}"
+        oninput="updateConfRating('${name}',this.value)">
+      <div class="conf-meta">d1Rate: ${data.d1Rate}% · transfers: ${data.transfers}</div>
+    </div>
+  `).join('');
+}
+
+function updateConfRating(name, val) {
+  confRatings[name].rating = parseFloat(val);
+  document.getElementById('cr-val-'+name.replace(/\s/g,'_')).textContent = parseFloat(val).toFixed(2);
+}
+
+function copyConfJS() {
+  const lines = Object.entries(confRatings).map(([k,v])=>
+    `  "${k}": { rating:${v.rating.toFixed(2)}, transfers:${v.transfers}, d1Rate:${v.d1Rate} },`
+  ).join('\n');
+  const js = `const CONF_SOURCE = {\n${lines}\n};`;
+  navigator.clipboard.writeText(js).then(()=>toast('Copied CONF_SOURCE JS to clipboard','success'));
+}
+
+function resetConfs() { confRatings = JSON.parse(JSON.stringify(CONF_SOURCE)); renderConfGrid(); }
+
+/* ── Push ── */
+let playerRows = [], compRows = [];
+
+function readFile(event, type) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => parseCSV(e.target.result, type);
+  reader.readAsText(file);
+}
+
+function onDragOver(e, id) { e.preventDefault(); document.getElementById(id).classList.add('dragover'); }
+function onDragLeave(e, id) { document.getElementById(id).classList.remove('dragover'); }
+function onDrop(e, type) {
+  e.preventDefault();
+  const id = type==='players'?'player-drop':'comp-drop';
+  document.getElementById(id).classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => parseCSV(ev.target.result, type);
+  reader.readAsText(file);
+}
+
+function parseCSV(text, type) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  const rows = lines.slice(1).map(line => {
+    const vals = line.split(',');
+    const obj = {};
+    headers.forEach((h,i) => {
+      let v = (vals[i]||'').trim().replace(/^"|"$/g,'');
+      obj[h] = v === '' || v === 'None' || v === 'nan' ? null : v;
+    });
+    return obj;
+  }).filter(r=>r[headers[0]]);
+
+  const logId = type==='players'?'player-log':'comp-log';
+  const btnId = type==='players'?'push-players-btn':'push-comps-btn';
+  addLog(logId, `Parsed ${rows.length} rows from CSV (${headers.length} columns)`, 'info');
+  addLog(logId, `Columns: ${headers.slice(0,6).join(', ')}${headers.length>6?'…':''}`, 'info');
+  if(type==='players') { playerRows = rows; document.getElementById(btnId).disabled = false; }
+  else { compRows = rows; document.getElementById(btnId).disabled = false; }
+}
+
+async function pushPlayers() {
+  if(!playerRows.length) return;
+  const log = 'player-log', prog = 'player-progress';
+  const btn = document.getElementById('push-players-btn');
+  btn.disabled = true;
+  const BATCH = 50;
+  let pushed = 0;
+  addLog(log, `Pushing ${playerRows.length} players in batches of ${BATCH}…`, 'info');
+  for(let i=0;i<playerRows.length;i+=BATCH) {
+    const batch = playerRows.slice(i,i+BATCH);
+    try {
+      await api('?sheet=Players','POST',{data:batch});
+      pushed += batch.length;
+      const pct = Math.round(pushed/playerRows.length*100);
+      document.getElementById(prog).style.width = pct+'%';
+      addLog(log, `✓ Pushed rows ${i+1}–${Math.min(i+BATCH,playerRows.length)} (${pct}%)`, 'ok');
+      await new Promise(r=>setTimeout(r,350));
+    } catch(e) {
+      addLog(log, `✗ Batch ${i/BATCH+1} failed: ${e.message}`, 'err');
+    }
+  }
+  addLog(log, `Done. ${pushed}/${playerRows.length} rows pushed.`, pushed===playerRows.length?'ok':'err');
+  toast(`Pushed ${pushed} players to sheet`,'success');
+  await loadAll();
+}
+
+async function pushComps() {
+  if(!compRows.length) return;
+  if(!confirm(`This will DELETE all ${allComps.length} existing comps and replace them with ${compRows.length} new rows. Continue?`)) return;
+  const log = 'comp-log', prog = 'comp-progress';
+  document.getElementById('push-comps-btn').disabled = true;
+  addLog(log,'Deleting existing comps…','info');
+  try {
+    await api('/all?sheet=Comps','DELETE');
+    addLog(log,'Cleared existing comps','ok');
+  } catch(e) { addLog(log,'Clear failed — continuing with insert: '+e.message,'err'); }
+  const BATCH = 50;
+  let pushed = 0;
+  for(let i=0;i<compRows.length;i+=BATCH) {
+    const batch = compRows.slice(i,i+BATCH);
+    try {
+      await api('?sheet=Comps','POST',{data:batch});
+      pushed += batch.length;
+      document.getElementById(prog).style.width = Math.round(pushed/compRows.length*100)+'%';
+      addLog(log,`✓ ${pushed}/${compRows.length} comps`,'ok');
+      await new Promise(r=>setTimeout(r,350));
+    } catch(e) { addLog(log,`✗ Batch failed: ${e.message}`,'err'); }
+  }
+  addLog(log,`Done. ${pushed} comps in sheet.`,pushed===compRows.length?'ok':'err');
+  toast(`Replaced comps: ${pushed} rows`,'success');
+  await loadAll();
+}
+
+function addLog(id, msg, cls) {
+  const el = document.getElementById(id);
+  const line = document.createElement('div');
+  line.className = 'log-line ' + (cls||'');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog(logId, progId) {
+  document.getElementById(logId).innerHTML='<div class="log-line info">Cleared.</div>';
+  if(progId) document.getElementById(progId).style.width='0%';
+}
+
+/* ── Scraper / TBC ── */
+function tbcLookup() {
+  const name = document.getElementById('tbc-name').value.trim();
+  if(!name) return;
+  const query = name.replace(/\s+/g,'+');
+  const url = `https://www.thebaseballcube.com/content/search/?Search=${query}`;
+  window.open(url,'_blank');
+  addLog('tbc-log',`Opened TBC search for "${name}" — find the player page and paste the URL below`,'info');
+}
+
+function openTBC() {
+  const url = document.getElementById('tbc-url').value.trim();
+  if(!url) return;
+  window.open(url,'_blank');
+}
+
+function batchSearch() {
+  const raw = document.getElementById('batch-names').value;
+  const names = raw.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  const log = document.getElementById('batch-log');
+  log.innerHTML = '';
+  names.forEach(name => {
+    const q = name.replace(/\s+/g,'+');
+    const url = `https://www.thebaseballcube.com/content/search/?Search=${q}`;
+    const line = document.createElement('div');
+    line.className = 'log-line info';
+    line.innerHTML = `<span style="color:var(--muted)">${name}</span> → <a href="${url}" target="_blank" style="color:var(--blue)">${url}</a>`;
+    log.appendChild(line);
+  });
+  addLog('batch-log',`Generated ${names.length} search URLs`,'ok');
+}
+
+async function quickAddPlayer() {
+  const name = document.getElementById('qa-name').value.trim();
+  if(!name) { toast('Name required','error'); return; }
+  const maxId = allPlayers.reduce((m,p)=>Math.max(m,parseInt(p.id)||0),0);
+  const ops = parseFloat(document.getElementById('qa-ops').value)||null;
+  const pos = document.getElementById('qa-pos').value;
+  const data = {
+    id: maxId+1, name, pos,
+    school: document.getElementById('qa-school').value,
+    conf: document.getElementById('qa-conf').value,
+    year: document.getElementById('qa-year').value,
+    hometown: document.getElementById('qa-hometown').value,
+    juco_ops: ops, isPitcher: ['SP','RP'].includes(pos)?'true':'false',
+    gemScore: document.getElementById('qa-gem').value||null,
+    status: 'available',
+  };
+  try {
+    await api('?sheet=Players','POST',{data:[data]});
+    toast(`Added ${name} (ID ${data.id}) to sheet`,'success');
+    await loadAll();
+  } catch(e) { toast('Push failed: '+e.message,'error'); }
+}
+
+/* ── Toast ── */
+function toast(msg, type='info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+/* ── Init ── */
+loadAll();
+
+/* ── GitHub integration ── */
+const GH_TOKEN = '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';
+const GH_REPO  = 'jakecarvajal/draftboard-pro';
+const GH_FILE  = 'index.html';
+const GH_BRANCH = 'main';
+const GH_BASE  = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+
+let currentFileSHA = null;
+let currentFileContent = null;
+let deployFileContent = null;
+
+function ghHeaders() {
+  return {
+    'Authorization': `Bearer ${GH_TOKEN}`,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+    'Content-Type': 'application/json',
+  };
+}
+
+async function githubFetch() {
+  const status = document.getElementById('gh-status');
+  const log = 'gh-log';
+  status.textContent = 'Fetching…';
+  addLog(log, 'Fetching index.html from GitHub…', 'info');
+  try {
+    const r = await fetch(`${GH_BASE}?ref=${GH_BRANCH}`, {headers: ghHeaders()});
+    if(!r.ok) throw new Error(`GitHub API ${r.status}: ${await r.text()}`);
+    const data = await r.json();
+    currentFileSHA = data.sha;
+    currentFileContent = atob(data.content.replace(/\n/g,''));
+    status.textContent = `✓ Loaded (${(currentFileContent.length/1024).toFixed(1)} KB, SHA: ${currentFileSHA.slice(0,8)}…)`;
+    status.style.color = 'var(--green)';
+    addLog(log, `Loaded ${currentFileContent.length} chars, SHA ${currentFileSHA.slice(0,8)}`, 'ok');
+    // Try to extract current version
+    const vm = currentFileContent.match(/v(\d+\.\d+\.\d+)/);
+    if(vm) addLog(log, `Current version in file: ${vm[1]}`, 'info');
+    // Extract current CONF_SOURCE to compare
+    const cm = currentFileContent.match(/const CONF_SOURCE = \{([\s\S]+?)\};/);
+    if(cm) addLog(log, 'Found CONF_SOURCE block in file', 'info');
+    document.getElementById('deploy-actions').style.display = '';
+    addLog(log, 'Ready to push. Select what to update above.', 'ok');
+  } catch(e) {
+    status.textContent = '✗ Failed';
+    status.style.color = 'var(--red)';
+    addLog(log, 'Fetch failed: ' + e.message, 'err');
+  }
+}
+
+function buildUpdatedContent() {
+  if(!currentFileContent) return null;
+  let content = currentFileContent;
+
+  // 1. Conf ratings update
+  if(document.getElementById('push-conf-ratings').checked) {
+    const lines = Object.entries(confRatings).map(([k,v]) =>
+      `  "${k}": { rating:${v.rating.toFixed(2)}, transfers:${v.transfers}, d1Rate:${v.d1Rate} },`
+    ).join('\n');
+    const newBlock = `const CONF_SOURCE = {\n${lines}\n}`;
+    const oldMatch = content.match(/const CONF_SOURCE = \{[\s\S]+?\}/);
+    if(oldMatch) {
+      content = content.replace(oldMatch[0], newBlock);
+    }
+  }
+
+  // 2. Version bump
+  if(document.getElementById('push-version').checked) {
+    content = content.replace(/v(\d+)\.(\d+)\.(\d+)/, (m, maj, min, pat) => {
+      return `v${maj}.${min}.${parseInt(pat)+1}`;
+    });
+  }
+
+  // 3. Custom patch
+  if(document.getElementById('push-custom-js').checked) {
+    const find = document.getElementById('patch-find').value;
+    const replace = document.getElementById('patch-replace').value;
+    if(find && content.includes(find)) {
+      content = content.replace(find, replace);
+    } else if(find) {
+      toast('Custom patch: find string not found in file', 'error');
+      return null;
+    }
+  }
+
+  return content;
+}
+
+function previewDiff() {
+  const newContent = buildUpdatedContent();
+  if(!newContent) return;
+  const oldLines = currentFileContent.split('\n');
+  const newLines = newContent.split('\n');
+  const diffs = [];
+  for(let i=0;i<Math.max(oldLines.length,newLines.length);i++) {
+    if(oldLines[i] !== newLines[i]) {
+      diffs.push(`Line ${i+1}:\n  - ${(oldLines[i]||'').trim()}\n  + ${(newLines[i]||'').trim()}`);
+      if(diffs.length >= 20) { diffs.push('… (truncated)'); break; }
+    }
+  }
+  const preview = document.getElementById('diff-preview');
+  const content = document.getElementById('diff-content');
+  if(diffs.length === 0) {
+    content.textContent = 'No changes detected.';
+  } else {
+    content.textContent = `${diffs.length} change(s):\n\n` + diffs.join('\n\n');
+  }
+  preview.style.display = '';
+}
+
+async function pushToGitHub() {
+  if(!currentFileSHA) { toast('Fetch the file first','error'); return; }
+  const newContent = buildUpdatedContent();
+  if(!newContent) return;
+  const msg = document.getElementById('commit-msg').value || 'Admin panel update';
+  const log = 'deploy-log';
+  addLog(log, `Pushing to ${GH_REPO}/${GH_FILE} on ${GH_BRANCH}…`, 'info');
+  document.getElementById('deploy-progress').style.width = '30%';
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(newContent)));
+    const body = {
+      message: msg,
+      content: encoded,
+      sha: currentFileSHA,
+      branch: GH_BRANCH,
+    };
+    const r = await fetch(GH_BASE, {method:'PUT', headers:ghHeaders(), body:JSON.stringify(body)});
+    if(!r.ok) throw new Error(`GitHub API ${r.status}: ${await r.text()}`);
+    const data = await r.json();
+    document.getElementById('deploy-progress').style.width = '100%';
+    addLog(log, `✓ Pushed! Commit: ${data.commit.sha.slice(0,8)} — "${msg}"`, 'ok');
+    addLog(log, 'GitHub Pages is rebuilding (usually 60–90 seconds)…', 'info');
+    addLog(log, `Live at: https://${GH_REPO.split('/')[0]}.github.io/${GH_REPO.split('/')[1]}/`, 'info');
+    currentFileSHA = data.content.sha;
+    toast('Pushed to GitHub! Deploying in ~60s', 'success');
+  } catch(e) {
+    document.getElementById('deploy-progress').style.width = '0%';
+    addLog(log, '✗ Push failed: ' + e.message, 'err');
+    toast('Push failed: ' + e.message, 'error');
+  }
+}
+
+/* Full file deploy */
+function onDropDeploy(e) {
+  e.preventDefault();
+  document.getElementById('deploy-drop').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if(file) readDeployFileObject(file);
+}
+
+function readDeployFile(event) {
+  readDeployFileObject(event.target.files[0]);
+}
+
+function readDeployFileObject(file) {
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    deployFileContent = e.target.result;
+    addLog('full-deploy-log', `Loaded ${file.name} (${(deployFileContent.length/1024).toFixed(1)} KB)`, 'ok');
+    addLog('full-deploy-log', 'Ready to push. Click "Replace index.html on GitHub".', 'info');
+    document.getElementById('full-deploy-btn').disabled = false;
+  };
+  reader.readAsText(file);
+}
+
+async function fullDeploy() {
+  if(!deployFileContent) { toast('Load a file first','error'); return; }
+  // Need SHA of current file
+  if(!currentFileSHA) {
+    addLog('full-deploy-log','Fetching current file SHA…','info');
+    try {
+      const r = await fetch(`${GH_BASE}?ref=${GH_BRANCH}`, {headers:ghHeaders()});
+      const data = await r.json();
+      currentFileSHA = data.sha;
+      addLog('full-deploy-log',`Got SHA: ${currentFileSHA.slice(0,8)}`,'ok');
+    } catch(e) {
+      addLog('full-deploy-log','Could not get current SHA: '+e.message,'err');
+      return;
+    }
+  }
+  if(!confirm('This will REPLACE the live index.html completely. Continue?')) return;
+  addLog('full-deploy-log','Encoding and pushing…','info');
+  document.getElementById('full-deploy-progress').style.width = '40%';
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(deployFileContent)));
+    const body = {
+      message: 'Full file deploy from DraftBoard Admin panel',
+      content: encoded,
+      sha: currentFileSHA,
+      branch: GH_BRANCH,
+    };
+    const r = await fetch(GH_BASE, {method:'PUT', headers:ghHeaders(), body:JSON.stringify(body)});
+    if(!r.ok) throw new Error(`GitHub API ${r.status}: ${await r.text()}`);
+    const data = await r.json();
+    document.getElementById('full-deploy-progress').style.width = '100%';
+    currentFileSHA = data.content.sha;
+    addLog('full-deploy-log',`✓ Deployed! Commit ${data.commit.sha.slice(0,8)}. GitHub Pages rebuilding…`,'ok');
+    toast('Deployed! Live in ~60 seconds','success');
+  } catch(e) {
+    document.getElementById('full-deploy-progress').style.width = '0%';
+    addLog('full-deploy-log','Deploy failed: '+e.message,'err');
+    toast('Deploy failed: '+e.message,'error');
+  }
+}
+
+// Wire custom JS checkbox toggle
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('push-custom-js')?.addEventListener('change', e => {
+    document.getElementById('custom-js-area').style.display = e.target.checked ? '' : 'none';
+  });
+});
+
+</script>
+</body>
+</html>
