@@ -1158,7 +1158,10 @@ async function runScraper() {
   addLog('scrape-log', `Fetching: ${url}`, 'info');
 
   try {
-    const res  = await fetch(PROXY + encodeURIComponent(url));
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const res  = await fetch(PROXY + encodeURIComponent(url), {signal: controller.signal});
+    clearTimeout(timeout);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
     document.getElementById('scrape-progress').style.width = '40%';
@@ -1200,111 +1203,131 @@ async function runScraper() {
   btn.disabled = false; btn.textContent = 'Scrape';
 }
 
-function parseBattingTable(html, conf, year, school) {
-  // TBC batting table has columns: Player, G, AB, R, H, 2B, 3B, HR, RBI, SB, CS, BB, K, AVG, OBP, SLG
+function parseBattingTable(htmlStr, conf, year, school) {
   const rows = [];
+  try {
+    // Use DOMParser — safe, fast, no regex backtracking
+    const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
 
-  // Find batting stats table — look for the section header
-  const battingIdx = html.search(/batting statistics|college baseball batting/i);
-  if(battingIdx === -1) return rows;
+    // Find all tables — TBC batting table contains player links
+    const tables = [...doc.querySelectorAll('table')];
+    let battingTable = null;
+    for(const t of tables) {
+      // Batting table has AVG/OBP/SLG headers
+      const headers = [...t.querySelectorAll('th')].map(h=>h.textContent.trim().toUpperCase());
+      if(headers.includes('AVG') && headers.includes('OBP')) { battingTable = t; break; }
+    }
+    if(!battingTable) return rows;
 
-  // Extract table rows — TBC uses <tr> with <td> cells
-  // Find all <tr> blocks after the batting section
-  const tableSection = html.slice(battingIdx, battingIdx + 50000);
+    // Get header positions
+    const headers = [...battingTable.querySelectorAll('th')].map(h=>h.textContent.trim().toUpperCase());
+    const col = name => headers.indexOf(name);
 
-  // Match player rows — TBC links players like /content/player/XXXXX/
-  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  let match;
-  while((match = rowRegex.exec(tableSection)) !== null) {
-    const row = match[1];
-    // Must contain a player link
-    const playerLink = row.match(/\/content\/player\/(\d+)\//);
-    if(!playerLink) continue;
-    const playerId = playerLink[1];
+    const trRows = [...battingTable.querySelectorAll('tr')].slice(1); // skip header
+    for(const tr of trRows) {
+      // Must have a player link
+      const playerLink = tr.querySelector('a[href*="/content/player/"]');
+      if(!playerLink) continue;
+      const playerIdMatch = playerLink.href.match(/\/content\/player\/(\d+)\//);
+      if(!playerIdMatch) continue;
+      const playerId = playerIdMatch[1];
+      const name = playerLink.textContent.trim();
+      if(!name) continue;
 
-    // Extract player name
-    const nameMatch = row.match(/\/content\/player\/\d+\/[^>]*>([^<]+)</);
-    if(!nameMatch) continue;
-    const name = nameMatch[1].trim();
+      const tds = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
 
-    // Extract TD values
-    const tds = [...row.matchAll(/<td[^>]*>([^<]*)<\/td>/g)].map(m => m[1].trim());
-    if(tds.length < 10) continue;
+      const get = (colName) => {
+        const i = col(colName);
+        return i >= 0 && i < tds.length ? tds[i] : null;
+      };
 
-    // TBC column order varies but typically: G,AB,R,H,2B,3B,HR,RBI,SB,CS,BB,K,AVG,OBP,SLG
-    // Find numeric columns — skip non-numeric
-    const nums = tds.map(v => parseFloat(v) || 0);
-    const avg = parseFloat(tds.find(v => /^0\.[2-5]\d{2}$/.test(v))) || 0;
-    const obp = parseFloat(tds.find((v,i,a) => /^0\.[2-6]\d{2}$/.test(v) && i > a.indexOf(tds.find(x=>/^0\.[2-5]\d{2}$/.test(x))))) || 0;
-    const slg = parseFloat(tds[tds.length-1]) || 0;
+      const avg = parseFloat(get('AVG')) || 0;
+      const obp = parseFloat(get('OBP')) || 0;
+      const slg = parseFloat(get('SLG')) || 0;
+      if(avg < 0.100 || avg > 0.700) continue;
 
-    if(avg < 0.100 || avg > 0.700) continue; // sanity check
+      const ops = Math.round((obp + slg) * 1000) / 1000;
+      const ab  = parseInt(get('AB'))  || 0;
+      const bb  = parseInt(get('BB'))  || parseInt(get('W')) || 0;
+      const k   = parseInt(get('K'))   || parseInt(get('SO')) || 0;
+      const hr  = parseInt(get('HR'))  || 0;
+      const sb  = parseInt(get('SB'))  || 0;
+      const pa  = ab + bb || ab;
+      const bbPct = pa > 0 ? Math.round(bb/pa*1000)/10 : 0;
+      const kPct  = pa > 0 ? Math.round(k/pa*1000)/10  : 0;
 
-    const ops = obp + slg;
-    const pa  = parseInt(tds[1]) || 0; // AB proxy
-    const hr  = parseInt(tds.find((v,i) => parseInt(v) >= 0 && i > 3 && i < 9)) || 0;
-    const sb  = parseInt(tds[8]) || 0;
-    const bb  = parseInt(tds[10]) || 0;
-    const k   = parseInt(tds[11]) || 0;
-    const bbPct = pa > 0 ? Math.round(bb/pa*1000)/10 : 0;
-    const kPct  = pa > 0 ? Math.round(k/pa*1000)/10  : 0;
+      const srcRating = CONF_SOURCE[conf]?.rating || 0.82;
+      const proj = computeProjection(ops, srcRating, 'SEC');
+      const gem  = computeGem(ops, srcRating, avg, kPct, bbPct, sb, pa);
 
-    const srcRating = CONF_SOURCE[conf]?.rating || 0.82;
-    const proj = computeProjection(ops, srcRating, 'SEC');
-    const gem  = computeGem(ops, srcRating, avg, kPct, bbPct, sb, pa);
-
-    rows.push({
-      tbcId: playerId, name, pos: guessPosition(name, tds),
-      school, conf, year,
-      juco_avg: avg, juco_obp: obp, juco_slg: slg, juco_ops: Math.round(ops*1000)/1000,
-      juco_pa: pa, juco_hr: hr, juco_sb: sb,
-      juco_bbPct: bbPct, juco_kPct: kPct,
-      proj_ops: proj, gemScore: gem, riskScore: 100-gem,
-      isPitcher: 'false', status: 'available',
-      bats: 'R', throws: 'R', age: 20,
-    });
-  }
+      rows.push({
+        tbcId: playerId, name, pos: 'SS',
+        school, conf, year,
+        juco_avg: avg, juco_obp: obp, juco_slg: slg, juco_ops: ops,
+        juco_pa: pa, juco_hr: hr, juco_sb: sb,
+        juco_bbPct: bbPct, juco_kPct: kPct,
+        proj_ops: proj, gemScore: gem, riskScore: 100 - gem,
+        isPitcher: 'false', status: 'available',
+        bats: 'R', throws: 'R', age: 20,
+      });
+    }
+  } catch(e) { console.error('Batting parse error:', e); }
   return rows;
 }
 
-function parsePitchingTable(html, conf, year, school) {
+function parsePitchingTable(htmlStr, conf, year, school) {
   const rows = [];
-  const pitchIdx = html.search(/pitching statistics|college baseball pitching/i);
-  if(pitchIdx === -1) return rows;
+  try {
+    const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+    const tables = [...doc.querySelectorAll('table')];
+    let pitchTable = null;
+    for(const t of tables) {
+      const headers = [...t.querySelectorAll('th')].map(h=>h.textContent.trim().toUpperCase());
+      if(headers.includes('ERA') && headers.includes('WHIP')) { pitchTable = t; break; }
+    }
+    if(!pitchTable) return rows;
 
-  const tableSection = html.slice(pitchIdx, pitchIdx + 30000);
-  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  let match;
-  while((match = rowRegex.exec(tableSection)) !== null) {
-    const row = match[1];
-    const playerLink = row.match(/\/content\/player\/(\d+)\//);
-    if(!playerLink) continue;
-    const playerId = playerLink[1];
-    const nameMatch = row.match(/\/content\/player\/\d+\/[^>]*>([^<]+)</);
-    if(!nameMatch) continue;
-    const name = nameMatch[1].trim();
+    const headers = [...pitchTable.querySelectorAll('th')].map(h=>h.textContent.trim().toUpperCase());
+    const col = name => headers.indexOf(name);
 
-    const tds = [...row.matchAll(/<td[^>]*>([^<]*)<\/td>/g)].map(m => m[1].trim());
-    if(tds.length < 8) continue;
+    for(const tr of [...pitchTable.querySelectorAll('tr')].slice(1)) {
+      const playerLink = tr.querySelector('a[href*="/content/player/"]');
+      if(!playerLink) continue;
+      const playerIdMatch = playerLink.href.match(/\/content\/player\/(\d+)\//);
+      if(!playerIdMatch) continue;
+      const playerId = playerIdMatch[1];
+      const name = playerLink.textContent.trim();
+      if(!name) continue;
 
-    const era  = parseFloat(tds.find(v => /^\d{1,2}\.\d{2}$/.test(v) && parseFloat(v) < 12)) || 0;
-    const whip = parseFloat(tds.find(v => /^\d\.\d{2}$/.test(v))) || 0;
-    const ip   = parseFloat(tds.find(v => /^\d{1,3}\.\d$/.test(v))) || 0;
-    if(era === 0 || ip < 5) continue;
+      const tds = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
+      const get = (colName) => { const i=col(colName); return i>=0&&i<tds.length?tds[i]:null; };
 
-    const srcRating = CONF_SOURCE[conf]?.rating || 0.82;
-    const projEra   = Math.round((era / srcRating) * 1.18 * 100) / 100;
-    const gem = Math.min(90, Math.max(15, Math.round(75 - era * 8 + whip * (-5))));
+      const era  = parseFloat(get('ERA'))  || 0;
+      const whip = parseFloat(get('WHIP')) || 0;
+      const ip   = parseFloat(get('IP'))   || 0;
+      const k9   = parseFloat(get('K/9'))  || 0;
+      const bb9  = parseFloat(get('BB/9')) || 0;
+      const sv   = parseInt(get('SV'))     || 0;
+      const gs   = parseInt(get('GS'))     || 0;
 
-    rows.push({
-      tbcId: playerId, name, pos: 'SP',
-      school, conf, year,
-      jucoP_era: era, jucoP_whip: whip, jucoP_ip: ip,
-      proj_era: projEra, gemScore: gem, riskScore: 100-gem,
-      isPitcher: 'true', status: 'available',
-      bats: 'R', throws: 'R', age: 20,
-    });
-  }
+      if(era === 0 || ip < 5) continue;
+
+      const srcRating = CONF_SOURCE[conf]?.rating || 0.82;
+      const projEra   = Math.round((era / srcRating) * 1.18 * 100) / 100;
+      const gem = Math.min(90, Math.max(15, Math.round(85 - era*9 - whip*4 + k9*1.5)));
+      const pos = sv > 3 ? 'RP' : gs > 3 ? 'SP' : 'RP';
+
+      rows.push({
+        tbcId: playerId, name, pos,
+        school, conf, year,
+        jucoP_era: era, jucoP_whip: whip, jucoP_ip: ip,
+        jucoP_k9: k9||null, jucoP_bb9: bb9||null, jucoP_sv: sv||null, jucoP_gs: gs||null,
+        proj_era: projEra, gemScore: gem, riskScore: 100 - gem,
+        isPitcher: 'true', status: 'available',
+        bats: 'R', throws: 'R', age: 20,
+      });
+    }
+  } catch(e) { console.error('Pitching parse error:', e); }
   return rows;
 }
 
@@ -1339,10 +1362,7 @@ function computeGem(ops, srcRating, avg, kPct, bbPct, sb, pa) {
   return Math.min(95, Math.max(10, gem));
 }
 
-function guessPosition(name, tds) {
-  // Can't reliably determine position from batting table — default to utility
-  return 'SS';
-}
+
 
 function renderScrapedHitters(players) {
   if(players.length === 0) return;
@@ -1445,7 +1465,10 @@ async function scrapePlayerById() {
   const url = `${TBC}/content/player/${id}/`;
   addLog('tbc-log', `Fetching player ${id}…`, 'info');
   try {
-    const res  = await fetch(PROXY + encodeURIComponent(url));
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const res  = await fetch(PROXY + encodeURIComponent(url), {signal: controller.signal});
+    clearTimeout(timeout);
     const html = await res.text();
     // Extract name from page
     const nameMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
