@@ -649,11 +649,23 @@ const CONF_SOURCE = {
 let confRatings = JSON.parse(JSON.stringify(CONF_SOURCE));
 
 async function api(path, method='GET', body=null) {
-  const opts = {method, headers:{'Content-Type':'application/json'}};
-  if(body) opts.body = JSON.stringify(body);
-  const r = await fetch(BASE + path, opts);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const opts = {method, headers:{'Content-Type':'application/json'}, signal: controller.signal};
+    if(body) opts.body = JSON.stringify(body);
+    const r = await fetch(BASE + path, opts);
+    clearTimeout(timer);
+    if(!r.ok) {
+      const txt = await r.text().catch(()=>'');
+      throw new Error('HTTP ' + r.status + ': ' + txt.slice(0,120));
+    }
+    return r.json();
+  } catch(e) {
+    clearTimeout(timer);
+    if(e.name === 'AbortError') throw new Error('Timed out — check SheetDB allowed origins includes ' + window.location.origin);
+    throw e;
+  }
 }
 
 async function loadAll() {
@@ -673,16 +685,22 @@ async function loadAll() {
     updateSidebarStats();
   } catch(e) {
     setConn('error');
-    toast('Could not connect to SheetDB: ' + e.message, 'error');
+    const msg = e.message || 'Unknown error';
+    toast('SheetDB error: ' + msg, 'error');
+    // Show error in the stats bar so it's visible
+    document.getElementById('stat-total').textContent = 'ERR';
+    document.getElementById('stat-total').title = msg;
+    console.error('loadAll failed:', e);
   }
 }
 
 function setConn(state) {
   const dot = document.getElementById('conn-dot');
   const lbl = document.getElementById('conn-label');
-  if(state==='ok'){dot.style.background='var(--green)';lbl.textContent='Connected';}
-  else if(state==='error'){dot.style.background='var(--red)';lbl.textContent='Error';}
-  else{dot.style.background='var(--muted)';lbl.textContent='Checking…';}
+  if(state==='ok')      { dot.style.background='var(--green)'; lbl.textContent='Connected'; }
+  else if(state==='error') { dot.style.background='var(--red)';   lbl.textContent='Error — check console'; }
+  else if(state==='idle')  { dot.style.background='var(--muted)'; lbl.textContent='Not connected'; }
+  else                  { dot.style.background='var(--gold2)';  lbl.textContent='Connecting…'; }
 }
 
 function updateStats() {
@@ -2014,11 +2032,23 @@ const CONF_SOURCE = {
 let confRatings = JSON.parse(JSON.stringify(CONF_SOURCE));
 
 async function api(path, method='GET', body=null) {
-  const opts = {method, headers:{'Content-Type':'application/json'}};
-  if(body) opts.body = JSON.stringify(body);
-  const r = await fetch(BASE + path, opts);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const opts = {method, headers:{'Content-Type':'application/json'}, signal: controller.signal};
+    if(body) opts.body = JSON.stringify(body);
+    const r = await fetch(BASE + path, opts);
+    clearTimeout(timer);
+    if(!r.ok) {
+      const txt = await r.text().catch(()=>'');
+      throw new Error('HTTP ' + r.status + ': ' + txt.slice(0,120));
+    }
+    return r.json();
+  } catch(e) {
+    clearTimeout(timer);
+    if(e.name === 'AbortError') throw new Error('Timed out — check SheetDB allowed origins includes ' + window.location.origin);
+    throw e;
+  }
 }
 
 async function loadAll() {
@@ -2038,16 +2068,22 @@ async function loadAll() {
     updateSidebarStats();
   } catch(e) {
     setConn('error');
-    toast('Could not connect to SheetDB: ' + e.message, 'error');
+    const msg = e.message || 'Unknown error';
+    toast('SheetDB error: ' + msg, 'error');
+    // Show error in the stats bar so it's visible
+    document.getElementById('stat-total').textContent = 'ERR';
+    document.getElementById('stat-total').title = msg;
+    console.error('loadAll failed:', e);
   }
 }
 
 function setConn(state) {
   const dot = document.getElementById('conn-dot');
   const lbl = document.getElementById('conn-label');
-  if(state==='ok'){dot.style.background='var(--green)';lbl.textContent='Connected';}
-  else if(state==='error'){dot.style.background='var(--red)';lbl.textContent='Error';}
-  else{dot.style.background='var(--muted)';lbl.textContent='Checking…';}
+  if(state==='ok')      { dot.style.background='var(--green)'; lbl.textContent='Connected'; }
+  else if(state==='error') { dot.style.background='var(--red)';   lbl.textContent='Error — check console'; }
+  else if(state==='idle')  { dot.style.background='var(--muted)'; lbl.textContent='Not connected'; }
+  else                  { dot.style.background='var(--gold2)';  lbl.textContent='Connecting…'; }
 }
 
 function updateStats() {
@@ -2541,7 +2577,18 @@ function toast(msg, type='info') {
 }
 
 /* ── Init ── */
-loadAll();
+// Show connect button instead of auto-connecting
+// This avoids freezing if SheetDB is slow or blocked
+document.addEventListener('DOMContentLoaded', () => {
+  setConn('idle');
+  // Try connecting after a short delay so UI renders first
+  setTimeout(() => loadAll(), 500);
+});
+
+function setConnIdle() {
+  document.getElementById('conn-dot').style.background = 'var(--muted)';
+  document.getElementById('conn-label').textContent = 'Click Refresh to connect';
+}
 
 /* ── GitHub integration ── */
 const GH_TOKEN = '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';
