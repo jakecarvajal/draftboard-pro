@@ -142,12 +142,6 @@ tr:hover .actions-cell{opacity:1}
 .conf-meta{font-size:10px;color:var(--muted);margin-top:4px}
 .rating-slider{width:100%;margin:8px 0;accent-color:var(--gold)}
 
-/* ── Toast ── */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:12px 18px;font-size:12px;color:var(--text);z-index:200;transform:translateY(80px);opacity:0;transition:all .3s;max-width:340px}
-.toast.show{transform:translateY(0);opacity:1}
-.toast.success{border-color:var(--green);color:var(--green)}
-.toast.error{border-color:var(--red);color:var(--red)}
-
 /* ── Scrollbars ── */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--surface)}
@@ -1274,7 +1268,7 @@ function parseBattingTable(htmlStr, conf, year, school) {
       const bbPct = pa > 0 ? Math.round(bb/pa*1000)/10 : 0;
       const kPct  = pa > 0 ? Math.round(k/pa*1000)/10  : 0;
 
-      const srcRating = CONF_SOURCE[conf]?.rating || 0.82;
+      const srcRating = (CONF_SOURCE[conf] ? CONF_SOURCE[conf].rating : 0.82) || 0.82;
       const proj = computeProjection(ops, srcRating, 'SEC');
       const gem  = computeGem(ops, srcRating, avg, kPct, bbPct, sb, pa);
 
@@ -1330,7 +1324,7 @@ function parsePitchingTable(htmlStr, conf, year, school) {
 
       if(era === 0 || ip < 5) continue;
 
-      const srcRating = CONF_SOURCE[conf]?.rating || 0.82;
+      const srcRating = (CONF_SOURCE[conf] ? CONF_SOURCE[conf].rating : 0.82) || 0.82;
       const projEra   = Math.round((era / srcRating) * 1.18 * 100) / 100;
       const gem = Math.min(90, Math.max(15, Math.round(85 - era*9 - whip*4 + k9*1.5)));
       const pos = sv > 3 ? 'RP' : gs > 3 ? 'SP' : 'RP';
@@ -1384,7 +1378,7 @@ function computeGem(ops, srcRating, avg, kPct, bbPct, sb, pa) {
 
 function renderScrapedHitters(players) {
   if(players.length === 0) return;
-  const existingNames = new Set(allPlayers.map(p => p.name?.toLowerCase()));
+  const existingNames = new Set(allPlayers.map(p => (p.name ? p.name.toLowerCase() : '')));
   const tbody = document.getElementById('scraped-body');
   tbody.innerHTML = players.map((p, i) => {
     const inDb = existingNames.has(p.name.toLowerCase());
@@ -1395,15 +1389,15 @@ function renderScrapedHitters(players) {
         <option>SS</option><option>C</option><option>1B</option><option>2B</option>
         <option>3B</option><option>LF</option><option>CF</option><option>RF</option><option>DH</option>
       </select></td>
-      <td style="color:var(--teal)">${p.juco_avg?.toFixed(3)||'—'}</td>
-      <td style="color:var(--teal)">${p.juco_obp?.toFixed(3)||'—'}</td>
-      <td style="color:var(--teal)">${p.juco_slg?.toFixed(3)||'—'}</td>
-      <td style="color:var(--gold);font-weight:500">${p.juco_ops?.toFixed(3)||'—'}</td>
+      <td style="color:var(--teal)">${(p.juco_avg != null ? (+p.juco_avg).toFixed(3) : null)||'—'}</td>
+      <td style="color:var(--teal)">${(p.juco_obp != null ? (+p.juco_obp).toFixed(3) : null)||'—'}</td>
+      <td style="color:var(--teal)">${(p.juco_slg != null ? (+p.juco_slg).toFixed(3) : null)||'—'}</td>
+      <td style="color:var(--gold);font-weight:500">${(p.juco_ops != null ? (+p.juco_ops).toFixed(3) : null)||'—'}</td>
       <td style="color:var(--muted)">${p.juco_pa||'—'}</td>
       <td style="color:var(--muted)">${p.juco_hr||0}</td>
       <td style="color:var(--muted)">${p.juco_sb||0}</td>
-      <td style="color:var(--muted)">${p.juco_kPct?.toFixed(1)||'—'}%</td>
-      <td style="color:var(--green)">${p.proj_ops?.toFixed(3)||'—'}</td>
+      <td style="color:var(--muted)">${(p.juco_kPct != null ? (+p.juco_kPct).toFixed(1) : null)||'—'}%</td>
+      <td style="color:var(--green)">${(p.proj_ops != null ? (+p.proj_ops).toFixed(3) : null)||'—'}</td>
       <td style="color:${p.gemScore>70?'var(--gold)':p.gemScore>50?'var(--teal)':'var(--muted)'}">${p.gemScore}</td>
       <td>${inDb?'<span style="color:var(--red);font-size:10px">IN DB</span>':'<span style="color:var(--green);font-size:10px">NEW</span>'}</td>
     </tr>`;
@@ -1414,23 +1408,23 @@ function renderScrapedHitters(players) {
 
 function renderScrapedPitchers(pitchers) {
   if(pitchers.length === 0) return;
-  const existingNames = new Set(allPlayers.map(p => p.name?.toLowerCase()));
+  const existingNames = new Set(allPlayers.map(p => (p.name ? p.name.toLowerCase() : '')));
   const tbody = document.getElementById('scraped-pitchers-body');
   tbody.innerHTML = pitchers.map((p, i) => {
     const inDb = existingNames.has(p.name.toLowerCase());
     return `<tr style="${inDb?'opacity:0.5':''}">
       <td><input type="checkbox" class="pitcher-chk" data-idx="${i}" ${inDb?'':'checked'}></td>
       <td style="color:var(--text);font-weight:500">${p.name}</td>
-      <td style="color:var(--teal)">${p.jucoP_era?.toFixed(2)||'—'}</td>
-      <td style="color:var(--muted)">${p.jucoP_whip?.toFixed(2)||'—'}</td>
+      <td style="color:var(--teal)">${(p.jucoP_era != null ? (+p.jucoP_era).toFixed(2) : null)||'—'}</td>
+      <td style="color:var(--muted)">${(p.jucoP_whip != null ? (+p.jucoP_whip).toFixed(2) : null)||'—'}</td>
       <td style="color:var(--muted)">—</td>
       <td style="color:var(--muted)">—</td>
-      <td style="color:var(--muted)">${p.jucoP_ip?.toFixed(1)||'—'}</td>
+      <td style="color:var(--muted)">${(p.jucoP_ip != null ? (+p.jucoP_ip).toFixed(1) : null)||'—'}</td>
       <td style="color:var(--muted)">—</td>
       <td style="color:var(--muted)">—</td>
       <td style="color:var(--muted)">—</td>
       <td style="color:var(--muted)">—</td>
-      <td style="color:var(--green)">${p.proj_era?.toFixed(2)||'—'}</td>
+      <td style="color:var(--green)">${(p.proj_era != null ? (+p.proj_era).toFixed(2) : null)||'—'}</td>
       <td style="color:${p.gemScore>70?'var(--gold)':p.gemScore>50?'var(--teal)':'var(--muted)'}">${p.gemScore}</td>
       <td>${inDb?'<span style="color:var(--red);font-size:10px">IN DB</span>':'<span style="color:var(--green);font-size:10px">NEW</span>'}</td>
     </tr>`;
@@ -1525,531 +1519,11 @@ function batchSearch() {
 }
 
 
-/* ── Toast ── */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:12px 18px;font-size:12px;color:var(--text);z-index:200;transform:translateY(80px);opacity:0;transition:all .3s;max-width:340px}
-.toast.show{transform:translateY(0);opacity:1}
-.toast.success{border-color:var(--green);color:var(--green)}
-.toast.error{border-color:var(--red);color:var(--red)}
-
 /* ── Scrollbars ── */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--surface)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-</style>
-</head>
-<body>
-<div class="shell">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="logo">
-      <div class="logo-mark">DRAFTBOARD</div>
-      <div class="logo-sub">Admin Console</div>
-    </div>
-    <nav class="nav">
-      <div class="nav-section">Data</div>
-      <div class="nav-item active" onclick="switchPanel('players')"><div class="nav-dot"></div>Players</div>
-      <div class="nav-item" onclick="switchPanel('comps')"><div class="nav-dot"></div>Comps</div>
-      <div class="nav-section">Tools</div>
-      <div class="nav-item" onclick="switchPanel('push')"><div class="nav-dot"></div>Push Data</div>
-      <div class="nav-item" onclick="switchPanel('conf')"><div class="nav-dot"></div>Conf Ratings</div>
-      <div class="nav-item" onclick="switchPanel('scraper')"><div class="nav-dot"></div>Scraper</div>
-      <div class="nav-item" onclick="switchPanel('deploy')"><div class="nav-dot"></div>Deploy</div>
-    </nav>
-    <div class="sidebar-stats" id="sidebar-stats">
-      <div class="stat-row"><span>Players</span><span class="stat-val" id="ss-players">—</span></div>
-      <div class="stat-row"><span>Comps</span><span class="stat-val" id="ss-comps">—</span></div>
-      <div class="stat-row"><span>Confs</span><span class="stat-val" id="ss-confs">—</span></div>
-      <div class="stat-row"><span>DB</span><span class="stat-val" id="ss-db" style="color:var(--muted)">checking…</span></div>
-    </div>
-  </aside>
 
-  <!-- Main -->
-  <div class="main">
-    <div class="topbar">
-      <span class="page-title" id="page-title">Players</span>
-      <div class="topbar-right">
-        <div class="status-dot" id="conn-dot" style="background:var(--muted)"></div>
-        <span class="status-label" id="conn-label">Connecting…</span>
-        <button class="btn small" onclick="loadAll()">↺ Refresh</button>
-        <button class="btn primary small" id="add-btn" onclick="openAddModal()">+ Add Player</button>
-      </div>
-    </div>
-
-    <!-- Players panel -->
-    <div class="panel active" id="panel-players">
-      <div class="stats-bar" id="stats-bar">
-        <div class="stat-card"><div class="stat-card-label">Total Players</div><div class="stat-card-val" id="stat-total">—</div></div>
-        <div class="stat-card"><div class="stat-card-label">Available</div><div class="stat-card-val" id="stat-avail">—</div></div>
-        <div class="stat-card"><div class="stat-card-label">Pitchers</div><div class="stat-card-val" id="stat-pitch">—</div></div>
-        <div class="stat-card"><div class="stat-card-label">Conferences</div><div class="stat-card-val" id="stat-conf">—</div></div>
-        <div class="stat-card"><div class="stat-card-label">Avg Gem</div><div class="stat-card-val" id="stat-gem">—</div></div>
-      </div>
-      <div class="panel-body">
-        <div class="table-wrap">
-          <div class="table-controls">
-            <div class="search-box"><span style="color:var(--muted)">⌕</span><input type="text" id="search" placeholder="Search name, school, conf…" oninput="filterPlayers()"></div>
-            <select id="filter-pos" onchange="filterPlayers()">
-              <option value="">All Positions</option>
-              <option>SP</option><option>RP</option><option>C</option>
-              <option>1B</option><option>2B</option><option>3B</option>
-              <option>SS</option><option>LF</option><option>CF</option>
-              <option>RF</option><option>DH</option>
-            </select>
-            <select id="filter-conf" onchange="filterPlayers()"><option value="">All Confs</option></select>
-            <select id="filter-status" onchange="filterPlayers()">
-              <option value="">All Status</option>
-              <option>available</option><option>committed</option><option>signed</option><option>drafted</option>
-            </select>
-            <select id="filter-year" onchange="filterPlayers()">
-              <option value="">All Years</option>
-              <option>2026</option><option>2027</option>
-            </select>
-          </div>
-          <div style="overflow-x:auto">
-            <table id="players-table">
-              <thead>
-                <tr>
-                  <th onclick="sortBy('id')">ID</th>
-                  <th onclick="sortBy('name')">Name</th>
-                  <th onclick="sortBy('pos')">Pos</th>
-                  <th onclick="sortBy('conf')">Conf</th>
-                  <th onclick="sortBy('school')">School</th>
-                  <th onclick="sortBy('year')">Yr</th>
-                  <th onclick="sortBy('gemScore')">Gem</th>
-                  <th onclick="sortBy('juco_ops')">OPS</th>
-                  <th onclick="sortBy('proj_ops')">Proj</th>
-                  <th onclick="sortBy('status')">Status</th>
-                  <th onclick="sortBy('flag')">Flag</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="players-body"></tbody>
-            </table>
-          </div>
-          <div class="pagination">
-            <span id="page-info">—</span>
-            <div class="page-btns" id="page-btns"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Comps panel -->
-    <div class="panel" id="panel-comps">
-      <div class="panel-body">
-        <div class="table-wrap">
-          <div class="table-controls">
-            <div class="search-box"><span style="color:var(--muted)">⌕</span><input type="text" id="comps-search" placeholder="Search name, conf, tags…" oninput="filterComps()"></div>
-            <select id="comps-type" onchange="filterComps()"><option value="">Hitters + Pitchers</option><option value="hitter">Hitters</option><option value="pitcher">Pitchers</option></select>
-            <select id="comps-level" onchange="filterComps()"><option value="">All Levels</option><option>D1</option><option>MLB</option></select>
-            <select id="comps-conf" onchange="filterComps()"><option value="">All Confs</option></select>
-            <button class="btn small" onclick="openAddCompModal()">+ Add Comp</button>
-          </div>
-          <div style="overflow-x:auto">
-            <table id="comps-table">
-              <thead>
-                <tr>
-                  <th>Name</th><th>Pos</th><th>JUCO School</th><th>Conf</th>
-                  <th>JUCO OPS / ERA</th><th>Dest</th><th>Level</th><th>Tags</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="comps-body"></tbody>
-            </table>
-          </div>
-          <div class="pagination">
-            <span id="comps-page-info">—</span>
-            <div class="page-btns" id="comps-page-btns"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Push panel -->
-    <div class="panel" id="panel-push">
-      <div class="panel-body">
-        <div class="push-section">
-          <div class="push-title">📤 Bulk Push Players</div>
-          <p class="push-desc">Upload a CSV (matching the Players sheet columns) or paste JSON to push directly into the Google Sheet. Rows are appended — existing data is untouched. Max 500 rows per push to avoid rate limits.</p>
-          <div class="upload-zone" id="player-drop" ondragover="onDragOver(event,'player-drop')" ondragleave="onDragLeave(event,'player-drop')" ondrop="onDrop(event,'players')" onclick="document.getElementById('player-file').click()">
-            <div style="font-size:28px;color:var(--muted)">⬆</div>
-            <p>Drop CSV here or click to browse</p>
-            <p style="font-size:10px;margin-top:4px">players_wave*.csv — must match column headers</p>
-          </div>
-          <input type="file" id="player-file" accept=".csv,.json" style="display:none" onchange="readFile(event,'players')">
-          <div class="progress-bar"><div class="progress-fill" id="player-progress"></div></div>
-          <div class="log-area" id="player-log"><div class="log-line info">Waiting for file…</div></div>
-          <div style="display:flex;gap:8px;margin-top:12px">
-            <button class="btn primary" id="push-players-btn" disabled onclick="pushPlayers()">Push to Sheet</button>
-            <button class="btn small" onclick="clearLog('player-log','player-progress')">Clear</button>
-          </div>
-        </div>
-
-        <div class="push-section">
-          <div class="push-title">🗂 Replace Comps Sheet</div>
-          <p class="push-desc">Upload the audited comps CSV to REPLACE all existing comp data. This deletes current comps and inserts the new set. Use with caution.</p>
-          <div class="upload-zone" id="comp-drop" ondragover="onDragOver(event,'comp-drop')" ondragleave="onDragLeave(event,'comp-drop')" ondrop="onDrop(event,'comps')" onclick="document.getElementById('comp-file').click()">
-            <div style="font-size:28px;color:var(--muted)">⬆</div>
-            <p>Drop Comps CSV here or click to browse</p>
-          </div>
-          <input type="file" id="comp-file" accept=".csv,.json" style="display:none" onchange="readFile(event,'comps')">
-          <div class="progress-bar"><div class="progress-fill" id="comp-progress"></div></div>
-          <div class="log-area" id="comp-log"><div class="log-line info">Waiting for file…</div></div>
-          <div style="display:flex;gap:8px;margin-top:12px">
-            <button class="btn danger" id="push-comps-btn" disabled onclick="pushComps()">Replace Comps Sheet</button>
-            <button class="btn small" onclick="clearLog('comp-log','comp-progress')">Clear</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Conf Ratings panel -->
-    <div class="panel" id="panel-conf">
-      <div class="panel-body">
-        <p style="color:var(--muted);font-size:12px;margin-bottom:20px">
-          These ratings live in the HTML code, not the sheet. Adjusting here shows you a preview — use the "Copy JS" button to get the updated CONF_SOURCE block to paste into the app code.
-        </p>
-        <div style="display:flex;gap:10px;margin-bottom:16px">
-          <button class="btn primary small" onclick="copyConfJS()">Copy JS Block</button>
-          <button class="btn small" onclick="resetConfs()">Reset to saved</button>
-        </div>
-        <div class="conf-grid" id="conf-grid"></div>
-      </div>
-    </div>
-
-    <!-- Scraper panel -->
-    <div class="panel" id="panel-scraper">
-      <div class="panel-body">
-
-        <!-- School scraper -->
-        <div class="push-section">
-          <div class="push-title">🏫 School Scraper — TheBaseballCube</div>
-          <p class="push-desc">Enter a TBC school ID and season year to pull the full roster with stats. The scraper reads batting and pitching tables, computes projections, and queues players for review before pushing to the sheet.</p>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:12px;align-items:end">
-            <div>
-              <div class="form-label" style="margin-bottom:4px">TBC School ID</div>
-              <input type="number" id="sc-school-id" class="form-input" placeholder="20349" value="20349">
-            </div>
-            <div>
-              <div class="form-label" style="margin-bottom:4px">Season Year</div>
-              <input type="number" id="sc-year" class="form-input" placeholder="2025" value="2025">
-            </div>
-            <div>
-              <div class="form-label" style="margin-bottom:4px">Conference</div>
-              <select id="sc-conf" class="form-input">
-                <option>NJCAA R14</option><option>ACCAC</option><option>GCAC</option>
-                <option>MCCAA</option><option>CCCAA</option><option>CCCAA-S</option>
-                <option>NWAC</option><option>NJCAA R1</option><option>NJCAA R4</option>
-                <option>NJCAA R5</option><option>NJCAA R6</option><option>NJCAA R7</option>
-                <option>NJCAA R13</option><option>NJCAA R15</option><option>NJCAA R17</option>
-                <option>NJCAA R20</option><option>NJCAA R21</option><option>NJCAA R22</option>
-                <option>NJCAA R23</option><option>NJCAA R24</option>
-                <option>FCSAA</option><option>WJCAC</option><option>SWJCAC</option>
-              </select>
-            </div>
-            <button class="btn primary" onclick="runScraper()" id="scrape-btn">Scrape</button>
-          </div>
-
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-            <span style="font-size:10px;color:var(--muted)">Quick load:</span>
-            <button class="btn small" onclick="quickLoad(20349,'NJCAA R14')">Blinn (R14)</button>
-            <button class="btn small" onclick="quickLoad(20222,'ACCAC')">Central AZ (ACCAC)</button>
-            <button class="btn small" onclick="quickLoad(21560,'NJCAA R12')">Sinclair (R12)</button>
-            <button class="btn small" onclick="quickLoad(20852,'NJCAA R23')">MS Gulf Coast (R23)</button>
-            <button class="btn small" onclick="openSchoolSearch()">Find school ID ↗</button>
-          </div>
-
-          <div class="progress-bar"><div class="progress-fill" id="scrape-progress"></div></div>
-          <div class="log-area" id="scrape-log"><div class="log-line info">Enter a school ID and click Scrape to begin.</div></div>
-        </div>
-
-        <!-- Results table -->
-        <div class="push-section" id="scrape-results" style="display:none">
-          <div class="push-title" style="justify-content:space-between">
-            <span>📋 Scraped Players <span id="scrape-count" style="color:var(--muted);font-size:11px"></span></span>
-            <div style="display:flex;gap:8px">
-              <button class="btn small" onclick="selectAllScraped()">Select All</button>
-              <button class="btn small" onclick="deselectAllScraped()">Deselect All</button>
-              <button class="btn primary small" onclick="pushScraped()" id="push-scraped-btn">Push Selected to Sheet</button>
-            </div>
-          </div>
-          <p class="push-desc">Review scraped players below. Check the ones you want to add, then push. Projections are computed automatically from JUCO stats + conference rating.</p>
-          <div style="overflow-x:auto">
-            <table id="scraped-table">
-              <thead>
-                <tr>
-                  <th style="width:30px"><input type="checkbox" id="select-all-chk" onchange="toggleAllScraped(this)"></th>
-                  <th>Name</th><th>Pos</th><th>AVG</th><th>OBP</th><th>SLG</th>
-                  <th>OPS</th><th>PA</th><th>HR</th><th>SB</th><th>K%</th>
-                  <th>Proj OPS</th><th>Gem</th><th>Already in DB</th>
-                </tr>
-              </thead>
-              <tbody id="scraped-body"></tbody>
-            </table>
-          </div>
-          <div class="log-area" id="push-scraped-log" style="margin-top:10px;display:none"></div>
-        </div>
-
-        <!-- Pitcher results -->
-        <div class="push-section" id="scrape-pitcher-results" style="display:none">
-          <div class="push-title" style="justify-content:space-between">
-            <span>⚾ Scraped Pitchers <span id="scrape-pitcher-count" style="color:var(--muted);font-size:11px"></span></span>
-            <div style="display:flex;gap:8px">
-              <button class="btn small" onclick="selectAllPitchers()">Select All</button>
-              <button class="btn primary small" onclick="pushPitchers()" id="push-pitchers-btn">Push Selected</button>
-            </div>
-          </div>
-          <div style="overflow-x:auto">
-            <table id="scraped-pitchers-table">
-              <thead>
-                <tr>
-                  <th style="width:30px"><input type="checkbox" id="select-all-pitchers-chk" onchange="toggleAllPitchers(this)"></th>
-                  <th>Name</th><th>ERA</th><th>WHIP</th><th>K/9</th><th>BB/9</th>
-                  <th>IP</th><th>W</th><th>L</th><th>SV</th><th>Velo</th>
-                  <th>Proj ERA</th><th>Gem</th><th>In DB</th>
-                </tr>
-              </thead>
-              <tbody id="scraped-pitchers-body"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Manual TBC lookup -->
-        <div class="push-section">
-          <div class="push-title">🔍 Single Player Lookup</div>
-          <p class="push-desc">Look up any player by name on TBC. Opens the search page — find the player ID from the URL, paste it back to extract full stats.</p>
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <input type="text" id="tbc-name" class="form-input" placeholder="Player name…" style="flex:1">
-            <button class="btn primary" onclick="tbcLookup()">Search TBC ↗</button>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:8px">
-            <input type="number" id="tbc-player-id" class="form-input" placeholder="TBC player ID (from URL)" style="width:200px">
-            <select id="tbc-player-conf" class="form-input" style="width:160px">
-              <option>NJCAA R14</option><option>ACCAC</option><option>GCAC</option>
-              <option>MCCAA</option><option>CCCAA</option><option>NWAC</option>
-              <option>NJCAA R5</option><option>NJCAA R6</option><option>NJCAA R7</option>
-              <option>NJCAA R15</option><option>FCSAA</option>
-            </select>
-            <button class="btn" onclick="scrapePlayerById()">Fetch Stats</button>
-          </div>
-          <div class="log-area" id="tbc-log"><div class="log-line info">Search for a player, find their ID in the URL (e.g. /content/player/292160/), then click Fetch Stats.</div></div>
-        </div>
-
-        <!-- Batch name search -->
-        <div class="push-section">
-          <div class="push-title">📋 Batch TBC Search</div>
-          <p class="push-desc">Paste a list of player names to generate TBC search URLs for all of them at once.</p>
-          <textarea id="batch-names" class="form-input" style="width:100%;height:80px;resize:vertical" placeholder="Cade Climie&#10;Brent Iredale&#10;Cayden Gaskin"></textarea>
-          <button class="btn primary small" style="margin-top:8px" onclick="batchSearch()">Generate Search URLs</button>
-          <div class="log-area" id="batch-log" style="margin-top:10px"><div class="log-line info">URLs will appear here.</div></div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Deploy panel -->
-    <div class="panel" id="panel-deploy">
-      <div class="panel-body">
-
-        <div class="push-section">
-          <div class="push-title">🔗 GitHub Connection</div>
-          <p class="push-desc">Connected to <strong style="color:var(--gold)">jakecarvajal/draftboard-pro</strong> · branch: <strong style="color:var(--gold)">main</strong> · file: <strong style="color:var(--gold)">index.html</strong></p>
-          <div style="display:flex;gap:8px;margin-top:10px">
-            <button class="btn small" onclick="githubFetch()">↺ Fetch current index.html</button>
-            <span id="gh-status" style="font-size:11px;color:var(--muted);align-self:center"></span>
-          </div>
-          <div class="log-area" id="gh-log" style="margin-top:10px"><div class="log-line info">Click "Fetch" to load the current deployed file.</div></div>
-        </div>
-
-        <div class="push-section" id="deploy-actions" style="display:none">
-          <div class="push-title">🚀 Push Changes</div>
-          <p class="push-desc">Select what to update, review the diff, then push. GitHub Pages will redeploy automatically (usually 60–90 seconds).</p>
-
-          <div style="margin-bottom:16px">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">What to push:</div>
-            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:12px">
-              <input type="checkbox" id="push-conf-ratings" checked style="accent-color:var(--gold)">
-              <span>Conference ratings (CONF_SOURCE) — sync sliders from Conf Ratings tab</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:12px">
-              <input type="checkbox" id="push-version" checked style="accent-color:var(--gold)">
-              <span>Version bump (auto-increment patch version in header)</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
-              <input type="checkbox" id="push-custom-js" style="accent-color:var(--gold)">
-              <span>Custom JS patch (paste below)</span>
-            </label>
-          </div>
-
-          <div id="custom-js-area" style="display:none;margin-bottom:14px">
-            <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Custom JS / find-replace patch</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div>
-                <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Find (exact string)</div>
-                <textarea id="patch-find" class="form-input" style="width:100%;height:80px;resize:vertical;font-size:11px" placeholder="const regressionFactor = 0.88..."></textarea>
-              </div>
-              <div>
-                <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Replace with</div>
-                <textarea id="patch-replace" class="form-input" style="width:100%;height:80px;resize:vertical;font-size:11px" placeholder="const regressionFactor = 0.79..."></textarea>
-              </div>
-            </div>
-          </div>
-
-          <div style="margin-bottom:14px">
-            <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Commit message</div>
-            <input type="text" id="commit-msg" class="form-input" value="Admin panel update — conf ratings + version bump" style="width:100%">
-          </div>
-
-          <div id="diff-preview" style="display:none;margin-bottom:14px">
-            <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Preview changes</div>
-            <div id="diff-content" style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:11px;max-height:200px;overflow-y:auto;white-space:pre-wrap;color:var(--muted)"></div>
-          </div>
-
-          <div style="display:flex;gap:8px">
-            <button class="btn small" onclick="previewDiff()">Preview diff</button>
-            <button class="btn primary" onclick="pushToGitHub()">Push to GitHub</button>
-          </div>
-          <div class="progress-bar" style="margin-top:10px"><div class="progress-fill" id="deploy-progress"></div></div>
-          <div class="log-area" id="deploy-log" style="margin-top:8px"></div>
-        </div>
-
-        <div class="push-section">
-          <div class="push-title">📄 Replace Full index.html</div>
-          <p class="push-desc">Upload the latest <code style="color:var(--gold)">DraftBoard_Pro_Updated.html</code> to fully replace the deployed file. This is the nuclear option — overwrites everything.</p>
-          <div class="upload-zone" id="deploy-drop" ondragover="onDragOver(event,'deploy-drop')" ondragleave="onDragLeave(event,'deploy-drop')" ondrop="onDropDeploy(event)" onclick="document.getElementById('deploy-file').click()">
-            <div style="font-size:28px;color:var(--muted)">⬆</div>
-            <p>Drop DraftBoard_Pro_Updated.html here</p>
-          </div>
-          <input type="file" id="deploy-file" accept=".html" style="display:none" onchange="readDeployFile(event)">
-          <div class="progress-bar"><div class="progress-fill" id="full-deploy-progress"></div></div>
-          <div class="log-area" id="full-deploy-log" style="margin-top:8px"><div class="log-line info">Waiting for file…</div></div>
-          <button class="btn danger" id="full-deploy-btn" disabled style="margin-top:10px" onclick="fullDeploy()">Replace index.html on GitHub</button>
-        </div>
-
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- Add Player Modal -->
-<div class="modal-backdrop" id="modal-player">
-  <div class="modal">
-    <div class="modal-title">
-      <span id="modal-player-title">Add Player</span>
-      <button class="btn small" onclick="closeModal('modal-player')">✕</button>
-    </div>
-    <div class="form-grid">
-      <div class="form-section">Identity</div>
-      <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="f-name"></div>
-      <div class="form-group"><label class="form-label">Position *</label>
-        <select class="form-input" id="f-pos"><option>SP</option><option>RP</option><option>C</option><option>1B</option><option>2B</option><option>3B</option><option>SS</option><option>LF</option><option>CF</option><option>RF</option><option>DH</option></select>
-      </div>
-      <div class="form-group"><label class="form-label">School</label><input class="form-input" id="f-school"></div>
-      <div class="form-group"><label class="form-label">Conference</label>
-        <select class="form-input" id="f-conf">
-          <option>ACCAC</option><option>NJCAA R14</option><option>GCAC</option><option>MCCAA</option>
-          <option>NJCAA R1</option><option>NJCAA R5</option><option>NJCAA R6</option><option>NJCAA R7</option>
-          <option>NJCAA R4</option><option>NJCAA R15</option><option>NJCAA R17</option><option>NJCAA R22</option>
-          <option>CCCAA</option><option>CCCAA-S</option><option>NWAC</option><option>FCSAA</option>
-          <option>NJCAA R21</option><option>NJCAA R24</option><option>WJCAC</option><option>SWJCAC</option>
-        </select>
-      </div>
-      <div class="form-group"><label class="form-label">Year</label><input class="form-input" id="f-year" type="number" value="2026"></div>
-      <div class="form-group"><label class="form-label">Hometown</label><input class="form-input" id="f-hometown"></div>
-      <div class="form-group"><label class="form-label">Bats</label>
-        <select class="form-input" id="f-bats"><option>R</option><option>L</option><option>S</option></select>
-      </div>
-      <div class="form-group"><label class="form-label">Throws</label>
-        <select class="form-input" id="f-throws"><option>R</option><option>L</option></select>
-      </div>
-      <div class="form-section">JUCO Stats (Hitter)</div>
-      <div class="form-group"><label class="form-label">AVG</label><input class="form-input" id="f-avg" type="number" step="0.001"></div>
-      <div class="form-group"><label class="form-label">OBP</label><input class="form-input" id="f-obp" type="number" step="0.001"></div>
-      <div class="form-group"><label class="form-label">SLG</label><input class="form-input" id="f-slg" type="number" step="0.001"></div>
-      <div class="form-group"><label class="form-label">PA</label><input class="form-input" id="f-pa" type="number"></div>
-      <div class="form-group"><label class="form-label">HR</label><input class="form-input" id="f-hr" type="number" value="0"></div>
-      <div class="form-group"><label class="form-label">SB</label><input class="form-input" id="f-sb" type="number" value="0"></div>
-      <div class="form-group"><label class="form-label">BB%</label><input class="form-input" id="f-bbpct" type="number" step="0.1"></div>
-      <div class="form-group"><label class="form-label">K%</label><input class="form-input" id="f-kpct" type="number" step="0.1"></div>
-      <div class="form-section">Scouting</div>
-      <div class="form-group"><label class="form-label">Gem Score (0-100)</label><input class="form-input" id="f-gem" type="number" min="0" max="100"></div>
-      <div class="form-group"><label class="form-label">Risk Score (0-100)</label><input class="form-input" id="f-risk" type="number" min="0" max="100"></div>
-      <div class="form-group"><label class="form-label">Status</label>
-        <select class="form-input" id="f-status"><option>available</option><option>committed</option><option>signed</option><option>drafted</option></select>
-      </div>
-      <div class="form-group"><label class="form-label">Flag</label>
-        <select class="form-input" id="f-flag"><option value="">None</option><option>HOT</option><option>RISING</option></select>
-      </div>
-      <div class="form-group full"><label class="form-label">Destination (if committed/signed/drafted)</label><input class="form-input" id="f-dest"></div>
-      <div class="form-group full"><label class="form-label">Notes</label><input class="form-input" id="f-notes"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-player')">Cancel</button>
-      <button class="btn primary" onclick="savePlayer()">Save Player</button>
-    </div>
-  </div>
-</div>
-
-<!-- Toast -->
-<div class="toast" id="toast"></div>
-
-<script>
-const BASE = 'https://sheetdb.io/api/v1/gfe1gq37xjmxy';
-let allPlayers = [], allComps = [], filteredPlayers = [], filteredComps = [];
-let currentPage = 1, compsPage = 1;
-const PAGE_SIZE = 40;
-let sortKey = 'gemScore', sortDir = -1;
-let editingId = null;
-
-const CONF_SOURCE = {
-  "ACCAC":{"rating":0.90,"transfers":142,"d1Rate":68},
-  "NJCAA R14":{"rating":0.88,"transfers":118,"d1Rate":64},
-  "GCAC":{"rating":0.84,"transfers":97,"d1Rate":59},
-  "MCCAA":{"rating":0.79,"transfers":63,"d1Rate":51},
-  "NJCAA R1":{"rating":0.90,"transfers":142,"d1Rate":68},
-  "NJCAA R2":{"rating":0.80,"transfers":72,"d1Rate":52},
-  "NJCAA R3":{"rating":0.74,"transfers":38,"d1Rate":44},
-  "NJCAA R4":{"rating":0.82,"transfers":84,"d1Rate":57},
-  "NJCAA R5":{"rating":0.84,"transfers":76,"d1Rate":59},
-  "NJCAA R6":{"rating":0.86,"transfers":92,"d1Rate":62},
-  "NJCAA R7":{"rating":0.76,"transfers":81,"d1Rate":49},
-  "NJCAA R13":{"rating":0.80,"transfers":54,"d1Rate":53},
-  "NJCAA R15":{"rating":0.83,"transfers":71,"d1Rate":57},
-  "NJCAA R17":{"rating":0.85,"transfers":68,"d1Rate":60},
-  "NJCAA R20":{"rating":0.86,"transfers":62,"d1Rate":61},
-  "NJCAA R21":{"rating":0.84,"transfers":82,"d1Rate":60},
-  "NJCAA R22":{"rating":0.83,"transfers":62,"d1Rate":57},
-  "NJCAA R23":{"rating":0.81,"transfers":54,"d1Rate":55},
-  "NJCAA R24":{"rating":0.80,"transfers":54,"d1Rate":52},
-  "CCCAA":{"rating":0.82,"transfers":124,"d1Rate":56},
-  "CCCAA-S":{"rating":0.85,"transfers":128,"d1Rate":60},
-  "NWAC":{"rating":0.82,"transfers":68,"d1Rate":54},
-  "WJCAC":{"rating":0.84,"transfers":38,"d1Rate":58},
-  "FCSAA":{"rating":0.80,"transfers":88,"d1Rate":52},
-  "SWJCAC":{"rating":0.81,"transfers":32,"d1Rate":53},
-};
-let confRatings = JSON.parse(JSON.stringify(CONF_SOURCE));
-
-async function api(path, method='GET', body=null) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
-  try {
-    const opts = {method, headers:{'Content-Type':'application/json'}, signal: controller.signal};
-    if(body) opts.body = JSON.stringify(body);
-    const r = await fetch(BASE + path, opts);
-    clearTimeout(timer);
-    if(!r.ok) {
-      const txt = await r.text().catch(()=>'');
-      throw new Error('HTTP ' + r.status + ': ' + txt.slice(0,120));
-    }
-    return r.json();
-  } catch(e) {
-    clearTimeout(timer);
-    if(e.name === 'AbortError') throw new Error('Timed out — check SheetDB allowed origins includes ' + window.location.origin);
-    throw e;
-  }
-}
 
 async function loadAll() {
   setConn('checking');
@@ -2797,7 +2271,7 @@ async function fullDeploy() {
 
 // Wire custom JS checkbox toggle
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('push-custom-js')?.addEventListener('change', e => {
+  const _pcjs = document.getElementById('push-custom-js'); if(_pcjs) _pcjs.addEventListener('change', e => {
     document.getElementById('custom-js-area').style.display = e.target.checked ? '' : 'none';
   });
 });
