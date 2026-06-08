@@ -334,7 +334,7 @@ tr:hover .actions-cell{opacity:1}
         <!-- School scraper -->
         <div class="push-section">
           <div class="push-title">🏫 School Scraper — TheBaseballCube</div>
-          <p class="push-desc">Enter a TBC school ID and season year to pull the full roster with stats. The scraper reads batting and pitching tables, computes projections, and queues players for review before pushing to the sheet.</p>
+          <p class="push-desc">Enter a TBC school ID and season year, then click "Open TBC Page" to open the stats page in a new tab. Copy the batting or pitching table from TBC and paste it below — this avoids CORS and login-wall issues entirely.</p>
 
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:12px;align-items:end">
             <div>
@@ -358,7 +358,7 @@ tr:hover .actions-cell{opacity:1}
                 <option>FCSAA</option><option>WJCAC</option><option>SWJCAC</option>
               </select>
             </div>
-            <button class="btn primary" onclick="runScraper()" id="scrape-btn">Scrape</button>
+            <button class="btn primary" onclick="runScraper()" id="scrape-btn">Open TBC Page</button>
           </div>
 
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
@@ -370,8 +370,24 @@ tr:hover .actions-cell{opacity:1}
             <button class="btn small" onclick="openSchoolSearch()">Find school ID ↗</button>
           </div>
 
-          <div class="progress-bar"><div class="progress-fill" id="scrape-progress"></div></div>
-          <div class="log-area" id="scrape-log"><div class="log-line info">Enter a school ID and click Scrape to begin.</div></div>
+          <div class="log-area" id="scrape-log"><div class="log-line info">Enter a school ID and click "Open TBC Page" to begin.</div></div>
+          <div id="paste-area-wrap" style="display:none;margin-top:14px">
+            <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:14px;margin-bottom:12px">
+              <div style="font-size:11px;color:var(--gold);font-weight:600;margin-bottom:8px">How to copy stats from TBC:</div>
+              <ol style="font-size:11px;color:var(--muted);line-height:2;padding-left:18px">
+                <li>On the TBC page that just opened, scroll to the <strong style="color:var(--text)">Batting</strong> or <strong style="color:var(--text)">Pitching</strong> stats table</li>
+                <li>Click the top-left cell of the table, then select the entire table</li>
+                <li>Copy with <strong style="color:var(--text)">Ctrl+C</strong></li>
+                <li>Paste into the box below and click <strong style="color:var(--text)">Parse Pasted Stats</strong></li>
+                <li>Repeat for the other table if needed</li>
+              </ol>
+            </div>
+            <textarea id="paste-stats" class="form-input" style="width:100%;height:120px;resize:vertical;font-size:11px" placeholder="Paste batting or pitching table here (tab-separated from browser copy)…"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn primary" onclick="parsePastedStats()">Parse Pasted Stats</button>
+              <button class="btn small" onclick="document.getElementById('paste-stats').value=''">Clear Paste</button>
+            </div>
+          </div>
         </div>
 
         <!-- Results table -->
@@ -1148,7 +1164,7 @@ function openSchoolSearch() {
   addLog('scrape-log', 'TBC school list opened — find your school and note the ID from the URL', 'info');
 }
 
-async function runScraper() {
+function runScraper() {
   const schoolId = document.getElementById('sc-school-id').value;
   const year     = document.getElementById('sc-year').value;
   const conf     = document.getElementById('sc-conf').value;
@@ -1156,64 +1172,112 @@ async function runScraper() {
 
   currentScrapeConf = conf;
   currentScrapeYear = year;
+  currentSchoolName = `School ${schoolId}`;
   scrapedHitters  = [];
   scrapedPitchers = [];
 
-  const btn = document.getElementById('scrape-btn');
-  btn.disabled = true; btn.textContent = 'Scraping…';
+  const url = `${TBC}/content/stats_college/${year}~${schoolId}/`;
+  window.open(url, '_blank');
+
+  document.getElementById('scrape-log').innerHTML = '';
   document.getElementById('scrape-results').style.display = 'none';
   document.getElementById('scrape-pitcher-results').style.display = 'none';
-  document.getElementById('scrape-log').innerHTML = '';
-  document.getElementById('scrape-progress').style.width = '10%';
+  addLog('scrape-log', `Opened: ${url}`, 'info');
+  addLog('scrape-log', 'Copy the batting or pitching table from the TBC page and paste it below.', 'info');
+  document.getElementById('paste-area-wrap').style.display = '';
+}
 
-  const url = `${TBC}/content/stats_college/${year}~${schoolId}/`;
-  addLog('scrape-log', `Fetching: ${url}`, 'info');
+function parsePastedStats() {
+  const text = document.getElementById('paste-stats').value.trim();
+  if(!text) { toast('Paste table data first','error'); return; }
+  const conf   = document.getElementById('sc-conf').value;
+  const year   = document.getElementById('sc-year').value;
+  const school = currentSchoolName || `School ${document.getElementById('sc-school-id').value}`;
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-    const res  = await fetch(PROXY + encodeURIComponent(url), {signal: controller.signal});
-    clearTimeout(timeout);
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await res.text();
-    console.log('[Scraper] CORS proxy response (first 2000 chars):', html.slice(0, 2000));
-    document.getElementById('scrape-progress').style.width = '40%';
+  const { hitters, pitchers } = parsePastedTable(text, conf, year, school);
+  const total = hitters.length + pitchers.length;
+  addLog('scrape-log', `Parsed ${hitters.length} hitters, ${pitchers.length} pitchers from pasted text.`, total > 0 ? 'ok' : 'err');
 
-    // Extract school name from page title
-    const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i) ||
-                       html.match(/College Name[^>]*>[^<]*<[^>]*>([^<]+)/i);
-    currentSchoolName = titleMatch ? titleMatch[1].trim() : `School ${schoolId}`;
-    addLog('scrape-log', `School: ${currentSchoolName} (${year})`, 'info');
-
-    // Parse batting table
-    const hitters = parseBattingTable(html, conf, year, currentSchoolName);
-    addLog('scrape-log', `Found ${hitters.length} hitters`, hitters.length > 0 ? 'ok' : 'err');
-
-    // Parse pitching table
-    const pitchers = parsePitchingTable(html, conf, year, currentSchoolName);
-    addLog('scrape-log', `Found ${pitchers.length} pitchers`, pitchers.length > 0 ? 'ok' : 'err');
-
-    document.getElementById('scrape-progress').style.width = '80%';
-
-    if(hitters.length === 0 && pitchers.length === 0) {
-      addLog('scrape-log', 'No stats found. TBC may require login for this season, or the school ID is wrong.', 'err');
-      addLog('scrape-log', `Try opening directly: ${url}`, 'info');
-    }
-
-    scrapedHitters  = hitters;
-    scrapedPitchers = pitchers;
-    renderScrapedHitters(hitters);
-    renderScrapedPitchers(pitchers);
-    document.getElementById('scrape-progress').style.width = '100%';
-    addLog('scrape-log', `Done. ${hitters.length} hitters + ${pitchers.length} pitchers ready for review.`, 'ok');
-
-  } catch(e) {
-    addLog('scrape-log', `Error: ${e.message}`, 'err');
-    addLog('scrape-log', 'If this is a CORS proxy error, try again in a moment (proxy may be rate-limiting).', 'info');
-    document.getElementById('scrape-progress').style.width = '0%';
+  if(hitters.length > 0)  { scrapedHitters = hitters;  renderScrapedHitters(hitters); }
+  if(pitchers.length > 0) { scrapedPitchers = pitchers; renderScrapedPitchers(pitchers); }
+  if(total === 0) {
+    addLog('scrape-log', 'No players found. Make sure you copied the full table including the header row (AVG OBP SLG or ERA WHIP IP).', 'err');
   }
+}
 
-  btn.disabled = false; btn.textContent = 'Scrape';
+function parsePastedTable(text, conf, year, school) {
+  const hitters  = [];
+  const pitchers = [];
+  try {
+    const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    if(lines.length < 2) return { hitters, pitchers };
+
+    const isTab = lines[0].includes('\t');
+    const split = line => isTab ? line.split('\t').map(s => s.trim())
+                                : line.trim().split(/\s{2,}/).map(s => s.trim());
+
+    const headers   = split(lines[0]).map(h => h.toLowerCase());
+    const isBatting  = headers.includes('avg') && headers.includes('obp') && headers.includes('slg');
+    const isPitching = headers.includes('era') && headers.includes('whip') && headers.includes('ip');
+    if(!isBatting && !isPitching) return { hitters, pitchers };
+
+    const col = n => headers.indexOf(n.toLowerCase());
+    const srcRating = CONF_SOURCE[conf] ? CONF_SOURCE[conf].rating : 0.82;
+
+    for(const line of lines.slice(1)) {
+      const tds = split(line);
+      const get  = c => { const i = col(c); return (i >= 0 && i < tds.length) ? tds[i] : null; };
+
+      const nameIdx = col('name') >= 0 ? col('name') : col('player') >= 0 ? col('player') : 0;
+      const name = (tds[nameIdx] || '').replace(/\*/g, '').trim();
+      if(!name || /total|team/i.test(name)) continue;
+
+      if(isBatting) {
+        const avg = parseFloat(get('avg')) || 0;
+        const obp = parseFloat(get('obp')) || 0;
+        const slg = parseFloat(get('slg')) || 0;
+        if(avg < 0.100 || avg > 0.750) continue;
+        const ops   = Math.round((obp + slg) * 1000) / 1000;
+        const ab    = parseInt(get('ab'))  || 0;
+        const bb    = parseInt(get('bb'))  || 0;
+        const so    = parseInt(get('so'))  || 0;
+        const hr    = parseInt(get('hr'))  || 0;
+        const sb    = parseInt(get('sb'))  || 0;
+        const pa    = parseInt(get('pa'))  || (ab + bb) || ab;
+        const bbPct = parseFloat(get('bb%')) || (pa > 0 ? Math.round(bb/pa*1000)/10 : 0);
+        const kPct  = parseFloat(get('k%'))  || parseFloat(get('so%')) || (pa > 0 ? Math.round(so/pa*1000)/10 : 0);
+        const proj  = computeProjection(ops, srcRating, 'SEC');
+        const gem   = computeGem(ops, srcRating, avg, kPct, bbPct, sb, pa);
+        hitters.push({
+          tbcId: null, name, pos: 'SS', school, conf, year,
+          juco_avg: avg, juco_obp: obp, juco_slg: slg, juco_ops: ops,
+          juco_pa: pa, juco_hr: hr, juco_sb: sb, juco_bbPct: bbPct, juco_kPct: kPct,
+          proj_ops: proj, gemScore: gem, riskScore: 100 - gem,
+          isPitcher: 'false', status: 'available', bats: 'R', throws: 'R', age: 20,
+        });
+      } else {
+        const era  = parseFloat(get('era'))  || 0;
+        const whip = parseFloat(get('whip')) || 0;
+        const ip   = parseFloat(get('ip'))   || 0;
+        const so9  = parseFloat(get('k/9'))  || parseFloat(get('so9'))  || 0;
+        const bb9  = parseFloat(get('bb/9')) || parseFloat(get('bb9'))  || 0;
+        const sv   = parseInt(get('sv'))     || 0;
+        const gs   = parseInt(get('gs'))     || 0;
+        if(ip < 5) continue;
+        const projEra = Math.round((era / srcRating) * 1.18 * 100) / 100;
+        const gem = Math.min(92, Math.max(12, Math.round(88 - era*8 - whip*3 + so9*1.2)));
+        const pos = sv > 3 ? 'RP' : gs > 3 ? 'SP' : 'RP';
+        pitchers.push({
+          tbcId: null, name, pos, school, conf, year,
+          jucoP_era: era, jucoP_whip: whip, jucoP_ip: ip,
+          jucoP_k9: so9||null, jucoP_bb9: bb9||null, jucoP_sv: sv||null, jucoP_gs: gs||null,
+          proj_era: projEra, gemScore: gem, riskScore: 100 - gem,
+          isPitcher: 'true', status: 'available', bats: 'R', throws: 'R', age: 20,
+        });
+      }
+    }
+  } catch(e) { console.error('Paste parse error:', e); }
+  return { hitters, pitchers };
 }
 
 function parseBattingTable(htmlStr, conf, year, school) {
