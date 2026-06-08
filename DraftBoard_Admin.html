@@ -1249,7 +1249,7 @@ function parseBattingTable(htmlStr, conf, year, school) {
       const sb  = parseInt(get('sb'))  || 0;
       const pa  = parseInt(get('pa'))  || (ab + bb) || ab;
       const bbPct = parseFloat(get('bb%')) || (pa > 0 ? Math.round(bb/pa*1000)/10 : 0);
-      const kPct  = parseFloat(get('so%')) || (pa > 0 ? Math.round(so/pa*1000)/10 : 0);
+      const kPct  = parseFloat(get('k%'))  || parseFloat(get('so%')) || (pa > 0 ? Math.round(so/pa*1000)/10 : 0);
       const srcRating = CONF_SOURCE[conf] ? CONF_SOURCE[conf].rating : 0.82;
       const proj = computeProjection(ops, srcRating, 'SEC');
       const gem  = computeGem(ops, srcRating, avg, kPct, bbPct, sb, pa);
@@ -1291,8 +1291,8 @@ function parsePitchingTable(htmlStr, conf, year, school) {
       const era  = parseFloat(get('era'))  || 0;
       const whip = parseFloat(get('whip')) || 0;
       const ip   = parseFloat(get('ip'))   || 0;
-      const so9  = parseFloat(get('so9'))  || 0;
-      const bb9  = parseFloat(get('bb9'))  || 0;
+      const so9  = parseFloat(get('k/9'))  || parseFloat(get('so9'))  || 0;
+      const bb9  = parseFloat(get('bb/9')) || parseFloat(get('bb9'))  || 0;
       const sv   = parseInt(get('sv'))     || 0;
       const gs   = parseInt(get('gs'))     || 0;
       if(ip < 5) continue;
