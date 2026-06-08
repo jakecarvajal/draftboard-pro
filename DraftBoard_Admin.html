@@ -1176,6 +1176,7 @@ async function runScraper() {
     clearTimeout(timeout);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
+    console.log('[Scraper] CORS proxy response (first 2000 chars):', html.slice(0, 2000));
     document.getElementById('scrape-progress').style.width = '40%';
 
     // Extract school name from page title
