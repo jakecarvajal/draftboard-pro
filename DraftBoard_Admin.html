@@ -1218,71 +1218,50 @@ async function runScraper() {
 function parseBattingTable(htmlStr, conf, year, school) {
   const rows = [];
   try {
-    // Use DOMParser — safe, fast, no regex backtracking
     const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
-
-    // Find all tables — TBC batting table contains player links
     const tables = [...doc.querySelectorAll('table')];
     let battingTable = null;
     for(const t of tables) {
-      // Batting table has AVG/OBP/SLG headers
-      const headers = [...t.querySelectorAll('th')].map(h=>h.textContent.trim().toUpperCase());
-      if(headers.includes('AVG') && headers.includes('OBP')) { battingTable = t; break; }
+      const hdrs = [...t.querySelectorAll('th')].map(h=>h.textContent.trim().toLowerCase());
+      if(hdrs.includes('avg') && hdrs.includes('obp') && hdrs.includes('slg')) { battingTable = t; break; }
     }
-    if(!battingTable) return rows;
-
-    // Get header positions
-    const headers = [...battingTable.querySelectorAll('th')].map(h=>h.textContent.trim().toUpperCase());
-    const col = name => headers.indexOf(name);
-
-    const trRows = [...battingTable.querySelectorAll('tr')].slice(1); // skip header
-    for(const tr of trRows) {
-      // Must have a player link
-      const playerLink = tr.querySelector('a[href*="/content/player/"]');
-      if(!playerLink) continue;
-      const playerIdMatch = playerLink.href.match(/\/content\/player\/(\d+)\//);
-      if(!playerIdMatch) continue;
-      const playerId = playerIdMatch[1];
-      const name = playerLink.textContent.trim();
-      if(!name) continue;
-
+    if(!battingTable) { console.log('No batting table found'); return rows; }
+    const hdrs = [...battingTable.querySelectorAll('th')].map(h=>h.textContent.trim().toLowerCase());
+    const col = n => hdrs.indexOf(n.toLowerCase());
+    for(const tr of [...battingTable.querySelectorAll('tr')].slice(1)) {
+      const link = tr.querySelector('a[href*="/content/player/"]');
+      if(!link) continue;
+      const m = link.href.match(/\/content\/player\/(\d+)\//);
+      if(!m) continue;
+      const name = link.textContent.trim();
+      if(!name || name.toLowerCase().includes('total')) continue;
       const tds = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
-
-      const get = (colName) => {
-        const i = col(colName);
-        return i >= 0 && i < tds.length ? tds[i] : null;
-      };
-
-      const avg = parseFloat(get('AVG')) || 0;
-      const obp = parseFloat(get('OBP')) || 0;
-      const slg = parseFloat(get('SLG')) || 0;
-      if(avg < 0.100 || avg > 0.700) continue;
-
+      const get = c => { const i=col(c); return (i>=0&&i<tds.length)?tds[i]:null; };
+      const avg = parseFloat(get('avg')) || 0;
+      const obp = parseFloat(get('obp')) || 0;
+      const slg = parseFloat(get('slg')) || 0;
+      if(avg < 0.100 || avg > 0.750) continue;
       const ops = Math.round((obp + slg) * 1000) / 1000;
-      const ab  = parseInt(get('AB'))  || 0;
-      const bb  = parseInt(get('BB'))  || parseInt(get('W')) || 0;
-      const k   = parseInt(get('K'))   || parseInt(get('SO')) || 0;
-      const hr  = parseInt(get('HR'))  || 0;
-      const sb  = parseInt(get('SB'))  || 0;
-      const pa  = ab + bb || ab;
-      const bbPct = pa > 0 ? Math.round(bb/pa*1000)/10 : 0;
-      const kPct  = pa > 0 ? Math.round(k/pa*1000)/10  : 0;
-
-      const srcRating = (CONF_SOURCE[conf] ? CONF_SOURCE[conf].rating : 0.82) || 0.82;
+      const ab  = parseInt(get('ab'))  || 0;
+      const bb  = parseInt(get('bb'))  || 0;
+      const so  = parseInt(get('so'))  || 0;
+      const hr  = parseInt(get('hr'))  || 0;
+      const sb  = parseInt(get('sb'))  || 0;
+      const pa  = parseInt(get('pa'))  || (ab + bb) || ab;
+      const bbPct = parseFloat(get('bb%')) || (pa > 0 ? Math.round(bb/pa*1000)/10 : 0);
+      const kPct  = parseFloat(get('so%')) || (pa > 0 ? Math.round(so/pa*1000)/10 : 0);
+      const srcRating = CONF_SOURCE[conf] ? CONF_SOURCE[conf].rating : 0.82;
       const proj = computeProjection(ops, srcRating, 'SEC');
       const gem  = computeGem(ops, srcRating, avg, kPct, bbPct, sb, pa);
-
       rows.push({
-        tbcId: playerId, name, pos: 'SS',
-        school, conf, year,
+        tbcId: m[1], name, pos: 'SS', school, conf, year,
         juco_avg: avg, juco_obp: obp, juco_slg: slg, juco_ops: ops,
-        juco_pa: pa, juco_hr: hr, juco_sb: sb,
-        juco_bbPct: bbPct, juco_kPct: kPct,
-        proj_ops: proj, gemScore: gem, riskScore: 100 - gem,
-        isPitcher: 'false', status: 'available',
-        bats: 'R', throws: 'R', age: 20,
+        juco_pa: pa, juco_hr: hr, juco_sb: sb, juco_bbPct: bbPct, juco_kPct: kPct,
+        proj_ops: proj, gemScore: gem, riskScore: 100-gem,
+        isPitcher: 'false', status: 'available', bats: 'R', throws: 'R', age: 20,
       });
     }
+    console.log('Batting rows:', rows.length);
   } catch(e) { console.error('Batting parse error:', e); }
   return rows;
 }
@@ -1294,51 +1273,42 @@ function parsePitchingTable(htmlStr, conf, year, school) {
     const tables = [...doc.querySelectorAll('table')];
     let pitchTable = null;
     for(const t of tables) {
-      const headers = [...t.querySelectorAll('th')].map(h=>h.textContent.trim().toUpperCase());
-      if(headers.includes('ERA') && headers.includes('WHIP')) { pitchTable = t; break; }
+      const hdrs = [...t.querySelectorAll('th')].map(h=>h.textContent.trim().toLowerCase());
+      if(hdrs.includes('era') && hdrs.includes('whip') && hdrs.includes('ip')) { pitchTable = t; break; }
     }
-    if(!pitchTable) return rows;
-
-    const headers = [...pitchTable.querySelectorAll('th')].map(h=>h.textContent.trim().toUpperCase());
-    const col = name => headers.indexOf(name);
-
+    if(!pitchTable) { console.log('No pitching table found'); return rows; }
+    const hdrs = [...pitchTable.querySelectorAll('th')].map(h=>h.textContent.trim().toLowerCase());
+    const col = n => hdrs.indexOf(n.toLowerCase());
     for(const tr of [...pitchTable.querySelectorAll('tr')].slice(1)) {
-      const playerLink = tr.querySelector('a[href*="/content/player/"]');
-      if(!playerLink) continue;
-      const playerIdMatch = playerLink.href.match(/\/content\/player\/(\d+)\//);
-      if(!playerIdMatch) continue;
-      const playerId = playerIdMatch[1];
-      const name = playerLink.textContent.trim();
-      if(!name) continue;
-
+      const link = tr.querySelector('a[href*="/content/player/"]');
+      if(!link) continue;
+      const m = link.href.match(/\/content\/player\/(\d+)\//);
+      if(!m) continue;
+      const name = link.textContent.trim();
+      if(!name || name.toLowerCase().includes('total')) continue;
       const tds = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
-      const get = (colName) => { const i=col(colName); return i>=0&&i<tds.length?tds[i]:null; };
-
-      const era  = parseFloat(get('ERA'))  || 0;
-      const whip = parseFloat(get('WHIP')) || 0;
-      const ip   = parseFloat(get('IP'))   || 0;
-      const k9   = parseFloat(get('K/9'))  || 0;
-      const bb9  = parseFloat(get('BB/9')) || 0;
-      const sv   = parseInt(get('SV'))     || 0;
-      const gs   = parseInt(get('GS'))     || 0;
-
-      if(era === 0 || ip < 5) continue;
-
-      const srcRating = (CONF_SOURCE[conf] ? CONF_SOURCE[conf].rating : 0.82) || 0.82;
-      const projEra   = Math.round((era / srcRating) * 1.18 * 100) / 100;
-      const gem = Math.min(90, Math.max(15, Math.round(85 - era*9 - whip*4 + k9*1.5)));
+      const get = c => { const i=col(c); return (i>=0&&i<tds.length)?tds[i]:null; };
+      const era  = parseFloat(get('era'))  || 0;
+      const whip = parseFloat(get('whip')) || 0;
+      const ip   = parseFloat(get('ip'))   || 0;
+      const so9  = parseFloat(get('so9'))  || 0;
+      const bb9  = parseFloat(get('bb9'))  || 0;
+      const sv   = parseInt(get('sv'))     || 0;
+      const gs   = parseInt(get('gs'))     || 0;
+      if(ip < 5) continue;
+      const srcRating = CONF_SOURCE[conf] ? CONF_SOURCE[conf].rating : 0.82;
+      const projEra = Math.round((era / srcRating) * 1.18 * 100) / 100;
+      const gem = Math.min(92, Math.max(12, Math.round(88 - era*8 - whip*3 + so9*1.2)));
       const pos = sv > 3 ? 'RP' : gs > 3 ? 'SP' : 'RP';
-
       rows.push({
-        tbcId: playerId, name, pos,
-        school, conf, year,
+        tbcId: m[1], name, pos, school, conf, year,
         jucoP_era: era, jucoP_whip: whip, jucoP_ip: ip,
-        jucoP_k9: k9||null, jucoP_bb9: bb9||null, jucoP_sv: sv||null, jucoP_gs: gs||null,
-        proj_era: projEra, gemScore: gem, riskScore: 100 - gem,
-        isPitcher: 'true', status: 'available',
-        bats: 'R', throws: 'R', age: 20,
+        jucoP_k9: so9||null, jucoP_bb9: bb9||null, jucoP_sv: sv||null, jucoP_gs: gs||null,
+        proj_era: projEra, gemScore: gem, riskScore: 100-gem,
+        isPitcher: 'true', status: 'available', bats: 'R', throws: 'R', age: 20,
       });
     }
+    console.log('Pitching rows:', rows.length);
   } catch(e) { console.error('Pitching parse error:', e); }
   return rows;
 }
