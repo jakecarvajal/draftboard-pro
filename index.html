@@ -158,6 +158,46 @@ function computeRiskScore(player) {
   return Math.min(72, Math.max(0, risk));
 }
 
+function computeProjections(player, targetConf) {
+  const srcRating = (CONF_SOURCE[player.conf] || {}).rating || 0.82;
+
+  if (!player.isPitcher && player.juco) {
+    const ops        = parseFloat(player.juco.ops) || 0;
+    const pa         = player.juco.pa || 0;
+    const confidence = Math.min(1.0, pa / 150);
+    const norm       = ops * srcRating;
+    let reg;
+    if (norm > 0.980)      reg = Math.max(0.62, 0.79 - (norm - 0.980) * 0.22);
+    else if (norm > 0.900) reg = 0.88 - (norm - 0.900) * 0.12;
+    else if (norm > 0.780) reg = 0.91;
+    else                   reg = 0.94;
+    const raw_proj = norm * reg;
+    const proj_ops = Math.round(((raw_proj * confidence) + (0.780 * (1 - confidence))) * 1000) / 1000;
+    return {
+      proj_ops,
+      proj_floor: Math.round((proj_ops - 0.062) * 1000) / 1000,
+      proj_ceil:  Math.round((proj_ops + 0.068) * 1000) / 1000,
+    };
+  }
+
+  if (player.isPitcher && player.jucoP) {
+    const era        = parseFloat(player.jucoP.era) || 0;
+    const ip         = parseFloat(player.jucoP.ip)  || 0;
+    const k9         = parseFloat(player.jucoP.k9)  || 0;
+    const confidence = Math.min(1.0, ip / 40);
+    const kAdj       = k9 > 10 ? 0.94 : k9 > 8 ? 1.00 : 1.08;
+    const raw_proj   = (era / srcRating) * kAdj;
+    const proj_era   = Math.round(((raw_proj * confidence) + (4.50 * (1 - confidence))) * 100) / 100;
+    return {
+      proj_era,
+      proj_floor_era: Math.round((proj_era + 0.75) * 100) / 100,
+      proj_ceil_era:  Math.round(Math.max(1.80, proj_era - 0.55) * 100) / 100,
+    };
+  }
+
+  return {};
+}
+
 function parsePlayer(row) {
   const bool = v => v === "TRUE" || v === "true" || v === "1";
   const num  = v => (v === "" || v == null) ? null : Number(v);
@@ -325,44 +365,42 @@ function SchoolLogo({dest, size=22}) {
 
 function projectToConf(player, targetConf) {
   const target = CONF_TARGETS[targetConf];
-  const source = CONF_SOURCE[player.conf] || { rating:0.85 };
-  if (!target) return player.proj;
-  if (!player.isPitcher && player.juco) {
-    const jucoOps = player.juco.ops;
-    const normalizedOps = jucoOps * source.rating;
-    const isP5 = ["SEC","Big 12","ACC","Pac-12","Big Ten","AAC"].includes(targetConf);
-    let regressionFactor;
-    if (normalizedOps > 0.980) {
-      const excess = normalizedOps - 0.980;
-      regressionFactor = isP5
-        ? Math.max(0.62, 0.79 - excess * 0.22)
-        : Math.max(0.72, 0.86 - excess * 0.10);
-    } else if (normalizedOps > 0.900) { regressionFactor = 0.88 - (normalizedOps - 0.900) * 0.12; }
-    else if (normalizedOps > 0.780) { regressionFactor = 0.91; }
-    else { regressionFactor = 0.94; }
-    const projOps = Math.round(normalizedOps * regressionFactor * target.opsMult / 0.828 * 1000) / 1000;
-    const projObp = Math.round(player.juco.obp * source.rating * regressionFactor * target.opsMult / 0.828 * 1.01 * 1000) / 1000;
-    let projSlg = Math.round((projOps - projObp) * 1000) / 1000;
-    if (projSlg < projObp * 0.75) projSlg = Math.round(projObp * 0.85 * 1000) / 1000;
-    const finalOps = Math.round((projObp + projSlg) * 1000) / 1000;
-    return { ...player.proj, ops:finalOps, obp:projObp, slg:projSlg,
-      floor:Math.round((finalOps-0.062)*1000)/1000, ceil:Math.round((finalOps+0.068)*1000)/1000 };
+  const source = CONF_SOURCE[player.conf] || { rating: 0.85 };
+  const cp     = computeProjections(player, targetConf);
+
+  if (!player.isPitcher && player.juco && cp.proj_ops != null) {
+    const scaleFactor = target ? target.opsMult / 0.828 : 1;
+    const scaledOps   = Math.round(cp.proj_ops * scaleFactor * 1000) / 1000;
+    const projObp     = player.juco.obp != null
+      ? Math.round(player.juco.obp * source.rating * scaleFactor * 1.01 * 1000) / 1000
+      : null;
+    let projSlg = projObp != null ? Math.round((scaledOps - projObp) * 1000) / 1000 : null;
+    if (projSlg != null && projSlg < projObp * 0.75) projSlg = Math.round(projObp * 0.85 * 1000) / 1000;
+    const finalOps = projObp != null ? Math.round((projObp + projSlg) * 1000) / 1000 : scaledOps;
+    return {
+      ops:   finalOps,
+      obp:   projObp,
+      slg:   projSlg,
+      floor: Math.round((finalOps - 0.062) * 1000) / 1000,
+      ceil:  Math.round((finalOps + 0.068) * 1000) / 1000,
+    };
   }
-  if (player.isPitcher && player.jucoP) {
-    const normalizedEra = player.jucoP.era / source.rating;
-    const kAdjust = player.jucoP.k9 > 10 ? 0.94 : player.jucoP.k9 > 8 ? 1.00 : 1.08;
-    const projEra = Math.round(normalizedEra * kAdjust * 100) / 100;
-    /* NOTE: pitcher projections validated on 2 data points only (Estrada/Yarbrough).
-       Use directionally but treat absolute ERA values as estimates. */
-    const projWhip = Math.round(player.jucoP.whip / source.rating * kAdjust * 0.96 * 100) / 100;
-    const projFip = Math.round(player.jucoP.fip / source.rating * kAdjust * 100) / 100;
-    return { ...player.proj, era:projEra, whip:projWhip, fip:projFip,
-      k9:Math.round(player.jucoP.k9*0.86*100)/100,
-      bb9:Math.round(player.jucoP.bb9*1.12*100)/100,
-      floor:Math.round((projEra+0.75)*100)/100,
-      ceil:Math.round(Math.max(1.80, projEra-0.55)*100)/100 };
+
+  if (player.isPitcher && player.jucoP && cp.proj_era != null) {
+    const k9   = parseFloat(player.jucoP.k9) || 0;
+    const kAdj = k9 > 10 ? 0.94 : k9 > 8 ? 1.00 : 1.08;
+    return {
+      era:   cp.proj_era,
+      whip:  player.jucoP.whip != null ? Math.round(player.jucoP.whip / source.rating * kAdj * 0.96 * 100) / 100 : null,
+      fip:   player.jucoP.fip  != null ? Math.round(player.jucoP.fip  / source.rating * kAdj * 100) / 100 : null,
+      k9:    k9   ? Math.round(k9                  * 0.86 * 100) / 100 : null,
+      bb9:   player.jucoP.bb9 ? Math.round(player.jucoP.bb9 * 1.12 * 100) / 100 : null,
+      floor: cp.proj_floor_era,
+      ceil:  cp.proj_ceil_era,
+    };
   }
-  return player.proj;
+
+  return {};
 }
 
 const fmt3 = n => n == null ? "—" : Number(n).toFixed(3);
