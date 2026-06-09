@@ -124,7 +124,7 @@ function computeGemScore(player) {
   if (player.isPitcher && player.jucoP) {
     const norm = player.jucoP.era / src.rating;
     const kAdj = player.jucoP.k9 > 10 ? 0.94 : player.jucoP.k9 > 8 ? 1.00 : 1.08;
-    const projEra = norm * kAdj * CONF_TARGETS["C-USA"].eraMult / 1.18;
+    const projEra = norm * kAdj;
     const eraPts = Math.min(70, Math.max(0, Math.round((6.0 - projEra) / 4.0 * 70)));
     const agePts = player.age <= 19 ? 10 : player.age === 20 ? 7 : player.age === 21 ? 4 : 0;
     const trendPts = (player.trend && (player.trend.startsWith("\u2212") || player.trend.startsWith("-"))) ? 10 : 0;
@@ -351,11 +351,11 @@ function projectToConf(player, targetConf) {
   if (player.isPitcher && player.jucoP) {
     const normalizedEra = player.jucoP.era / source.rating;
     const kAdjust = player.jucoP.k9 > 10 ? 0.94 : player.jucoP.k9 > 8 ? 1.00 : 1.08;
-    const projEra = Math.round(normalizedEra * kAdjust * target.eraMult / 1.18 * 100) / 100;
+    const projEra = Math.round(normalizedEra * kAdjust * 100) / 100;
     /* NOTE: pitcher projections validated on 2 data points only (Estrada/Yarbrough).
        Use directionally but treat absolute ERA values as estimates. */
-    const projWhip = Math.round(player.jucoP.whip / source.rating * kAdjust * (target.eraMult/1.18) * 0.96 * 100) / 100;
-    const projFip = Math.round(player.jucoP.fip / source.rating * kAdjust * target.eraMult / 1.18 * 100) / 100;
+    const projWhip = Math.round(player.jucoP.whip / source.rating * kAdjust * 0.96 * 100) / 100;
+    const projFip = Math.round(player.jucoP.fip / source.rating * kAdjust * 100) / 100;
     return { ...player.proj, era:projEra, whip:projWhip, fip:projFip,
       k9:Math.round(player.jucoP.k9*0.86*100)/100,
       bb9:Math.round(player.jucoP.bb9*1.12*100)/100,
