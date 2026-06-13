@@ -238,7 +238,8 @@ function parsePlayer(row) {
   const rawRisk = num(row.riskScore);
   const trend   = str(row.trend) || "";
   const confAdj = num(row.confAdj) || 0;
-  const status  = str(row.status) || "available";
+  const rawStatus = str(row.status) || "available";
+  const status = rawStatus === "signed" ? "committed" : rawStatus;
   const dest    = str(row.dest);
   const flag    = str(row.flag);
   const notes   = str(row.notes) || "";
@@ -247,8 +248,7 @@ function parsePlayer(row) {
   const riskScore = (rawRisk && rawRisk > 0) ? rawRisk : computeRiskScore(partial);
   let autoFlag = flag;
   if (!autoFlag) {
-    if (gemScore >= 78 && status === "available") autoFlag = "HOT";
-    else if (trend && trend.startsWith("+") && parseFloat(trend) > 0.080) autoFlag = "RISING";
+    if (trend && trend.startsWith("+") && parseFloat(trend) > 0.080) autoFlag = "RISING";
   }
   return {
     id: Number(row.id), name: row.name, pos: row.pos, school: row.school,
@@ -418,8 +418,8 @@ const fmt2 = n => n == null ? "—" : Number(n).toFixed(2);
 const gemColor  = s => s >= 80 ? "#4ade80" : s >= 65 ? "#f6ad55" : s >= 45 ? "#94a3b8" : "#f87171";
 const riskColor = s => s <= 30 ? "#4ade80" : s <= 45 ? "#fbbf24" : "#f87171";
 const riskLabel = s => s <= 30 ? "LOW" : s <= 45 ? "MED" : "HIGH";
-const flagColors   = {"HOT":["rgba(239,68,68,.15)","#fc8181"],"RISING":["rgba(34,197,94,.12)","#4ade80"],"WATCH":["rgba(251,191,36,.12)","#fbbf24"]};
-const statusColors = {"available":["rgba(148,163,184,.08)","#94a3b8"],"committed":["rgba(74,222,128,.1)","#4ade80"],"signed":["rgba(147,197,253,.1)","#93c5fd"],"drafted":["rgba(167,139,250,.1)","#a78bfa"]};
+const flagColors   = {"RISING":["rgba(34,197,94,.12)","#4ade80"],"WATCH":["rgba(251,191,36,.12)","#fbbf24"]};
+const statusColors = {"available":["rgba(148,163,184,.08)","#94a3b8"],"committed":["rgba(74,222,128,.1)","#4ade80"],"drafted":["rgba(167,139,250,.1)","#a78bfa"]};
 const initials = n => n.split(" ").map(w => w[0]).join("").toUpperCase().slice(0,2);
 const getMainStat = p => p.isPitcher ? (p.jucoP?.whip ?? null) : (p.juco?.ops ?? null);
 
@@ -516,6 +516,7 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
         <div key={l} style={{...S.card,padding:"8px 10px"}}><div style={{fontSize:9,color:"#4a5568",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:500,color:c||"#a5b4fc",marginTop:2}}>{v??'—'}</div></div>
       ))}
     </div> : null}
+    {((!isERA&&p.juco&&(p.juco.pa||0)<75)||(isERA&&p.jucoP&&(p.jucoP.ip||0)<20))&&<div style={{fontSize:11,color:"#4a5568",fontStyle:"italic",marginBottom:10}}>* Limited sample ({isERA?`${p.jucoP.ip||0} IP`:`${p.juco.pa||0} PA`})</div>}
     <div style={{...S.card,padding:"12px 14px"}}>
       {[["Conf-adj percentile",Math.round((CONF_SOURCE[p.conf]||0.82)*100)+"th","#f6ad55"],["Source conf strength",(CONF_SOURCE[p.conf]||0).toFixed(2),"#93c5fd"],["YoY trend",p.trend||"N/A",p.trend?(p.trend.startsWith("+")?"#4ade80":"#f87171"):"#718096"]].map(([l,v,c]) => (
         <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#94a3b8",marginBottom:6}}>
@@ -647,7 +648,7 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
       </div>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
         <Badge text={p.status} type="status"/>
-        {p.dest && <div style={{display:"flex",alignItems:"center",gap:5}}><SchoolLogo dest={p.dest} size={16}/><span style={{fontSize:12,fontWeight:600,color:p.status==="committed"?"#4ade80":p.status==="signed"?"#93c5fd":"#a78bfa"}}>→ {p.dest}</span></div>}
+        {p.dest && <div style={{display:"flex",alignItems:"center",gap:5}}><SchoolLogo dest={p.dest} size={16}/><span style={{fontSize:12,fontWeight:600,color:p.status==="committed"?"#4ade80":"#a78bfa"}}>→ {p.dest}</span></div>}
         {p.flag && <Badge text={p.flag} type="flag"/>}
         <span style={{fontSize:11,color:"#4a5568"}}>{p.school} · {p.conf} · {p.year}</span>
       </div>
@@ -693,9 +694,8 @@ function HelpModal({onClose}) {
           ["RISK SCORE (0–100)","Projection uncertainty. Lower = more reliable. Factors: small sample (<150 PA = +15), high K% (+10), age 22+ (+8), weak conference (+8). Capped at 72."],
           ["JUCO STAT","Raw statistic from the player's most recent JUCO season. Hitters: OPS. Pitchers: WHIP."],
           ["PROJECTED STAT","Expected performance at the selected D1 conference. Updates live when you change the dropdown."],
-          ["HOT FLAG","Gem Score 78+ and status = available. Priority recruiting target."],
           ["RISING FLAG","Strong positive year-over-year trend (>+.080 OPS or ERA drop)."],
-          ["STATUS BADGES","Available = no commitment. Committed = verbal. Signed = NLI. Drafted = pro."],
+          ["STATUS BADGES","Available = no commitment. Committed = verbal or signed NLI. Drafted = pro."],
           ["PIPELINE","Star (★) any player to track them. Set stages and priority stars in the Pipeline tab."],
           ["LOAD MORE","The board shows 20 players at a time. Click 'Load More' to reveal the next 20. Any filter change resets the count back to 20."],
         ].map(([title, desc]) => (
@@ -804,7 +804,7 @@ function App() {
     }
     if (posFilter.length) p = p.filter(x => posFilter.includes(x.pos));
     if (flairFilter) {
-      if (["available","committed","signed","drafted"].includes(flairFilter)) { p = p.filter(x => x.status===flairFilter); }
+      if (["available","committed","drafted"].includes(flairFilter)) { p = p.filter(x => x.status===flairFilter); }
       else { p = p.filter(x => x.flag===flairFilter); }
     }
     if (confFilter.length) p = p.filter(x => confFilter.includes(x.conf));
@@ -940,7 +940,7 @@ function App() {
             </div>
             <div style={{width:1,height:18,background:"rgba(255,255,255,.08)",flexShrink:0}}/>
             <div style={{display:"flex",gap:3,flexShrink:0}}>
-              {[{value:null,label:"All",col:"#718096"},{value:"available",label:"Avail",col:"#94a3b8"},{value:"committed",label:"Commit",col:"#4ade80"},{value:"signed",label:"Signed",col:"#93c5fd"},{value:"HOT",label:"🔥",col:"#fc8181"},{value:"RISING",label:"📈",col:"#4ade80"}].map(({value,label,col}) => (
+              {[{value:null,label:"All",col:"#718096"},{value:"available",label:"Avail",col:"#94a3b8"},{value:"committed",label:"Committed",col:"#4ade80"},{value:"RISING",label:"📈 Rising",col:"#4ade80"}].map(({value,label,col}) => (
                 <button key={String(value)} onClick={() => setFlairFilter(flairFilter===value?null:value)}
                   style={{padding:"2px 7px",borderRadius:10,fontSize:10,fontWeight:600,cursor:"pointer",background:flairFilter===value?`${col}22`:"rgba(255,255,255,.03)",border:`1px solid ${flairFilter===value?col+"66":"rgba(255,255,255,.08)"}`,color:flairFilter===value?col:"#4a5568",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>{label}</button>
               ))}
@@ -1027,10 +1027,10 @@ function App() {
                                 {p.flag&&<Badge text={p.flag} type="flag"/>}
                                 <Badge text={p.status} type="status"/>
                               </div>
-                              {(p.status==="committed"||p.status==="signed"||p.status==="drafted")&&p.dest&&(
+                              {(p.status==="committed"||p.status==="drafted")&&p.dest&&(
                                 <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
                                   <SchoolLogo dest={p.dest} size={16}/>
-                                  <span style={{fontSize:12,fontWeight:600,color:p.status==="committed"?"#4ade80":p.status==="signed"?"#93c5fd":"#a78bfa",whiteSpace:"nowrap"}}>{p.status==="drafted"?"⚾ ":"→ "}{p.dest}</span>
+                                  <span style={{fontSize:12,fontWeight:600,color:p.status==="committed"?"#4ade80":"#a78bfa",whiteSpace:"nowrap"}}>{p.status==="drafted"?"⚾ ":"→ "}{p.dest}</span>
                                 </div>
                               )}
                             </div>
@@ -1038,7 +1038,7 @@ function App() {
                           </div>
                         </div>
                       </td>
-                      <td style={{padding:"5px 8px",textAlign:"right"}}><span style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:500,color:statColor}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span></td>
+                      <td style={{padding:"5px 8px",textAlign:"right"}}><span style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:500,color:statColor}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span>{(isERA?(p.jucoP?.ip||0)<20:(p.juco?.pa||0)<75)&&<span style={{color:"#4a5568",fontSize:10,marginLeft:1}} title={isERA?"< 20 IP":"< 75 PA"}>*</span>}</td>
                       <td style={{padding:"5px 8px",textAlign:"right"}}><span style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:500,color:"#93c5fd"}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span></td>
                       <td style={{padding:"5px 8px",textAlign:"right",position:"relative",overflow:"hidden"}}>
                         <div style={{position:"absolute",right:0,top:0,bottom:0,width:`${p.gemScore}%`,background:gemColor(p.gemScore),opacity:0.07,borderRadius:"2px 0 0 2px"}}/>
@@ -1073,12 +1073,12 @@ function App() {
                         <Badge text={p.status} type="status"/>
                       </div>
                       <div style={{fontSize:11,color:"#4a5568"}}>{p.pos} · {p.school} · {p.conf}</div>
-                      {(p.status==="committed"||p.status==="signed")&&p.dest&&<div style={{display:"flex",alignItems:"center",gap:4,marginTop:2}}><SchoolLogo dest={p.dest} size={14}/><span style={{fontSize:11,color:"#4ade80",fontWeight:500}}>→ {p.dest}</span></div>}
+                      {p.status==="committed"&&p.dest&&<div style={{display:"flex",alignItems:"center",gap:4,marginTop:2}}><SchoolLogo dest={p.dest} size={14}/><span style={{fontSize:11,color:"#4ade80",fontWeight:500}}>→ {p.dest}</span></div>}
                     </div>
                     <button onClick={e=>{e.stopPropagation();inPipeline(p.id)?removeFromPipeline(p.id):addToPipeline(p.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:inPipeline(p.id)?"#f6ad55":"#2d3748",padding:4}}>★</button>
                   </div>
                   <div style={{display:"flex",gap:12,fontFamily:"'DM Mono',monospace",fontSize:12}}>
-                    <span style={{color:"#94a3b8"}}>{isERA?"WHIP":"OPS"} <span style={{color:"#e2e8f0",fontWeight:500}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span></span>
+                    <span style={{color:"#94a3b8"}}>{isERA?"WHIP":"OPS"} <span style={{color:"#e2e8f0",fontWeight:500}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span>{(isERA?(p.jucoP?.ip||0)<20:(p.juco?.pa||0)<75)&&<span style={{color:"#4a5568",fontSize:10}} title={isERA?"< 20 IP":"< 75 PA"}>*</span>}</span>
                     <span style={{color:"#4a5568"}}>→</span>
                     <span style={{color:"#93c5fd",fontWeight:500}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span>
                     <span style={{color:"#4a5568"}}>Gem <span style={{color:gemColor(p.gemScore),fontWeight:600}}>{p.gemScore}</span></span>
