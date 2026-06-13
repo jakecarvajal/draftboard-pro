@@ -185,7 +185,7 @@ function computeProjections(player) {
     const ip   = parseFloat(player.jucoP.ip)   || 0;
     const era  = parseFloat(player.jucoP.era)  || 0;
     const k9   = parseFloat(player.jucoP.k9)   || 0;
-    const whip = parseFloat(player.jucoP.whip) || 0;
+    const whip = parseFloat(player.jucoP_whip) || 0;
     if (era === 0) return null;
     const confidence    = Math.min(1.0, ip / 40);
     const kAdj          = k9 > 10 ? 0.94 : k9 > 8 ? 1.00 : 1.08;
@@ -254,7 +254,9 @@ function parsePlayer(row) {
     id: Number(row.id), name: row.name, pos: row.pos, school: row.school,
     conf, year: Number(row.year), age, ht: row.ht, wt: Number(row.wt),
     bats: row.bats, throws: row.throws, hometown: row.hometown,
-    isPitcher, juco, jucoP, proj, probs,
+    isPitcher, juco, jucoP,
+    jucoP_whip: isPitcher ? num(row.jucoP_whip) : null,
+    proj, probs,
     gemScore, riskScore, trend, confAdj, status, dest,
     flag: autoFlag, notes,
   };
@@ -513,7 +515,7 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
       ))}
     </div> : null}
     <div style={{...S.card,padding:"12px 14px"}}>
-      {[["Conf-adj percentile",(p.confAdj||"—")+"th","#f6ad55"],["Source conf strength",(CONF_SOURCE[p.conf]||0).toFixed(2),"#93c5fd"],["YoY trend",p.trend||"—",p.trend?.startsWith("+")?"#4ade80":"#f87171"]].map(([l,v,c]) => (
+      {[["Conf-adj percentile",Math.round((CONF_SOURCE[p.conf]||0.82)*100)+"th","#f6ad55"],["Source conf strength",(CONF_SOURCE[p.conf]||0).toFixed(2),"#93c5fd"],["YoY trend",p.trend||"N/A",p.trend?(p.trend.startsWith("+")?"#4ade80":"#f87171"):"#718096"]].map(([l,v,c]) => (
         <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#94a3b8",marginBottom:6}}>
           <span>{l}</span><span style={{fontFamily:"'DM Mono',monospace",color:c}}>{v}</span>
         </div>
