@@ -405,6 +405,8 @@ function projectToConf(player, targetConf) {
       bb9:   player.jucoP.bb9 ? Math.round(player.jucoP.bb9 * 1.12 * 100) / 100 : null,
       floor: cp.proj_floor,
       ceil:  cp.proj_ceil,
+      whip_floor: cp.proj_whip != null ? Math.round((cp.proj_whip + 0.15) * 100) / 100 : null,
+      whip_ceil:  cp.proj_whip != null ? Math.round(Math.max(0.90, cp.proj_whip - 0.12) * 100) / 100 : null,
     };
   }
 
@@ -481,7 +483,7 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
   const [noteText, setNoteText] = useState("");
   if (!player) return null;
   const p = player, proj = projectToConf(p, targetConf), mainStat = getMainStat(p), isERA = p.isPitcher;
-  const projStat = isERA ? proj.era : proj.ops;
+  const projStat = isERA ? proj.whip : proj.ops;
   const playerNotes = notes[p.id] || [];
 
   const tabBar = <div style={{display:"flex",borderBottom:"1px solid rgba(255,255,255,.06)",background:asDrawer?"#0c111b":"transparent",flexShrink:0}}>
@@ -538,9 +540,9 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
     </div>
     <div style={{...S.card,padding:"14px 16px",marginBottom:14}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:12}}>
-        <span style={{fontFamily:"'DM Mono',monospace",color:"#f87171"}}>{isERA?fmt2(proj.floor):fmt3(proj.floor)} floor</span>
+        <span style={{fontFamily:"'DM Mono',monospace",color:"#f87171"}}>{isERA?fmt2(proj.whip_floor):fmt3(proj.floor)} floor</span>
         <span style={{fontFamily:"'DM Mono',monospace",color:"#93c5fd",fontWeight:600,fontSize:16}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span>
-        <span style={{fontFamily:"'DM Mono',monospace",color:"#4ade80"}}>{isERA?fmt2(proj.ceil):fmt3(proj.ceil)} ceil</span>
+        <span style={{fontFamily:"'DM Mono',monospace",color:"#4ade80"}}>{isERA?fmt2(proj.whip_ceil):fmt3(proj.ceil)} ceil</span>
       </div>
       <div style={{height:8,background:"rgba(255,255,255,.06)",borderRadius:4,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",left:"10%",width:"80%",height:"100%",background:"rgba(147,197,253,.2)",borderRadius:4}}/>
@@ -1009,7 +1011,7 @@ function App() {
               {filtered.length === 0
                 ? <tr><td colSpan={7} style={{padding:"40px",textAlign:"center",fontSize:14,color:"#4a5568"}}>No players match your filters.</td></tr>
                 : filtered.slice(0, visibleCount).map(p => {
-                    const mainStat = getMainStat(p), proj = projectToConf(p, targetConf), projStat = p.isPitcher?proj.era:proj.ops, isERA=p.isPitcher;
+                    const mainStat = getMainStat(p), proj = projectToConf(p, targetConf), projStat = p.isPitcher?proj.whip:proj.ops, isERA=p.isPitcher;
                     const statColor = mainStat != null ? (isERA?(mainStat<0.95?"#f6ad55":mainStat<1.15?"#a78bfa":"#e2e8f0"):(mainStat>1.0?"#f6ad55":mainStat>.900?"#a78bfa":"#e2e8f0")) : "#e2e8f0";
                     const d1Prob = (() => { const lp = computeProbs(p); return p.isPitcher ? (lp.d1IP||0) : (lp.d1PA||0); })();
                     return <tr key={p.id} onClick={() => setSelected(selected===p.id?null:p.id)} tabIndex={0}
@@ -1059,7 +1061,7 @@ function App() {
           {filtered.length === 0
             ? <p style={{padding:24,textAlign:"center",color:"#4a5568",fontSize:14}}>No players match.</p>
             : filtered.slice(0, visibleCount).map(p => {
-                const mainStat=getMainStat(p), proj=projectToConf(p,targetConf), projStat=p.isPitcher?proj.era:proj.ops, isERA=p.isPitcher;
+                const mainStat=getMainStat(p), proj=projectToConf(p,targetConf), projStat=p.isPitcher?proj.whip:proj.ops, isERA=p.isPitcher;
                 return <div key={p.id} onClick={() => setSelected(selected===p.id?null:p.id)}
                   style={{padding:"12px 14px",marginBottom:8,background:selected===p.id?"rgba(246,173,85,.06)":"rgba(255,255,255,.03)",border:`1px solid ${selected===p.id?"rgba(246,173,85,.2)":"rgba(255,255,255,.06)"}`,borderRadius:8,cursor:"pointer"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
@@ -1108,7 +1110,7 @@ function App() {
               </div>
               {stagePlayers.length===0&&<p style={{fontSize:12,color:"#2d3748",fontStyle:"italic",padding:"8px 0"}}>No players</p>}
               {stagePlayers.map(({id,meta,player:p}) => {
-                const proj=projectToConf(p,targetConf), projStat=p.isPitcher?proj.era:proj.ops;
+                const proj=projectToConf(p,targetConf), projStat=p.isPitcher?proj.whip:proj.ops;
                 return <div key={id} style={{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.06)",borderRadius:6,padding:"10px 12px",marginBottom:8,cursor:"pointer"}} onClick={()=>{setSelected(id);setView("board");}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
                     <div style={{display:"flex",alignItems:"center",gap:7}}>
@@ -1217,7 +1219,7 @@ function App() {
           {selPlayer.dest && <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}><SchoolLogo dest={selPlayer.dest} size={14}/><span style={{fontSize:11,fontWeight:600,color:"#4ade80"}}>→ {selPlayer.dest}</span></div>}
           <div style={{width:1,height:18,background:"rgba(255,255,255,.08)",flexShrink:0}}/>
           {(() => {
-            const proj=projectToConf(selPlayer,targetConf); const ms=getMainStat(selPlayer); const ps=selPlayer.isPitcher?proj.era:proj.ops;
+            const proj=projectToConf(selPlayer,targetConf); const ms=getMainStat(selPlayer); const ps=selPlayer.isPitcher?proj.whip:proj.ops;
             return <>
               <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#94a3b8",flexShrink:0}}>JUCO: <span style={{color:"#f6ad55"}}>{ms!=null?(selPlayer.isPitcher?fmt2(ms):fmt3(ms)):"—"}</span></span>
               <span style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#94a3b8",flexShrink:0}}>Proj: <span style={{color:"#93c5fd"}}>{ps!=null?(selPlayer.isPitcher?fmt2(ps):fmt3(ps)):"—"}</span></span>
