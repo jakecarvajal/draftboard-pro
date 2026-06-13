@@ -84,65 +84,29 @@ const CONF_TARGETS = {
 };
 
 const CONF_SOURCE = {
-  "ACCAC":       { rating:0.90, transfers:142, d1Rate:68 },
-  "NJCAA R14":   { rating:0.88, transfers:118, d1Rate:64 },
-  "GCAC":        { rating:0.84, transfers:97,  d1Rate:59 },
-  "MCCAA":       { rating:0.79, transfers:63,  d1Rate:51 },
-  "NJCAA R1":    { rating:0.90, transfers:142, d1Rate:68 },  // Same as ACCAC (Arizona)
-  "NJCAA R2":    { rating:0.80, transfers:72,  d1Rate:52 },
-  "NJCAA R3":    { rating:0.74, transfers:38,  d1Rate:44 },
-  "NJCAA R4":    { rating:0.82, transfers:84,  d1Rate:57 },
-  "NJCAA R5":    { rating:0.84, transfers:76,  d1Rate:59 },  // Bumped: NM/SE stronger than avg R5
-  "NJCAA R6":    { rating:0.86, transfers:94,  d1Rate:62 },
-  "NJCAA R7":    { rating:0.76, transfers:81,  d1Rate:49 },
-  "NJCAA R8":    { rating:0.70, transfers:44,  d1Rate:42 },
-  "NJCAA R9":    { rating:0.73, transfers:52,  d1Rate:46 },
-  "NJCAA R10":   { rating:0.80, transfers:48,  d1Rate:52 },
-  "NJCAA R11":   { rating:0.78, transfers:61,  d1Rate:50 },
-  "NJCAA R12":   { rating:0.77, transfers:58,  d1Rate:49 },
-  "NJCAA R13":   { rating:0.80, transfers:67,  d1Rate:53 },
-  "NJCAA R15":   { rating:0.83, transfers:71,  d1Rate:57 },
-  "NJCAA R16":   { rating:0.78, transfers:34,  d1Rate:48 },
-  "NJCAA R17":   { rating:0.85, transfers:58,  d1Rate:60 },
-  "NJCAA R18":   { rating:0.76, transfers:46,  d1Rate:48 },
-  "NJCAA R19":   { rating:0.77, transfers:53,  d1Rate:49 },
-  "NJCAA R20":   { rating:0.86, transfers:88,  d1Rate:61 },
-  "NJCAA R21":   { rating:0.84, transfers:74,  d1Rate:58 },
-  "NJCAA R22":   { rating:0.83, transfers:62,  d1Rate:57 },
-  "NJCAA R23":   { rating:0.81, transfers:86,  d1Rate:55 },
-  "NJCAA R24":   { rating:0.80, transfers:54,  d1Rate:52 },
-  "CCCAA":       { rating:0.82, transfers:104, d1Rate:56 },
-  "CCCAA-S":     { rating:0.85, transfers:128, d1Rate:60 },
-  "NWAC":        { rating:0.82, transfers:58,  d1Rate:54 },
-  "NWAACC":      { rating:0.81, transfers:32,  d1Rate:52 },
-  "NJACC":       { rating:0.75, transfers:28,  d1Rate:46 },
-  "NJCAA-DII":   { rating:0.72, transfers:88,  d1Rate:44 },
-  "NJCAA-DIII":  { rating:0.64, transfers:24,  d1Rate:34 },
-  "HAAC":        { rating:0.78, transfers:46,  d1Rate:50 },
-  "MCAC":        { rating:0.68, transfers:22,  d1Rate:40 },
-  "WJCAC":       { rating:0.84, transfers:38,  d1Rate:58 },
-  "SWJCAC":      { rating:0.81, transfers:32,  d1Rate:53 },
+  "ACCAC":    0.90, "NJCAA R14": 0.88, "GCAC":     0.84, "MCCAA":    0.79,
+  "NJCAA R1": 0.90, "NJCAA R2":  0.80, "NJCAA R3": 0.74, "NJCAA R4": 0.82,
+  "NJCAA R5": 0.84, "NJCAA R6":  0.86, "NJCAA R7": 0.76, "NJCAA R12":0.80,
+  "NJCAA R13":0.80, "NJCAA R15": 0.83, "NJCAA R17":0.85, "NJCAA R20":0.86,
+  "NJCAA R21":0.84, "NJCAA R22": 0.83, "NJCAA R23":0.81, "NJCAA R24":0.80,
+  "CCCAA":    0.82, "CCCAA-S":   0.85, "NWAC":     0.82, "WJCAC":    0.84,
+  "FCSAA":    0.80, "SWJCAC":    0.81,
 };
 
 function computeGemScore(player) {
-  const src = CONF_SOURCE[player.conf] || { rating: 0.79 };
   if (!player.isPitcher && player.juco) {
-    const norm = player.juco.ops * src.rating;
-    let reg = norm > 0.980 ? Math.max(0.62, 0.79 - (norm - 0.980) * 0.22)
-              : norm > 0.900 ? 0.88 - (norm - 0.900) * 0.12
-              : norm > 0.780 ? 0.91 : 0.94;
-    const projOps = norm * reg * CONF_TARGETS["C-USA"].opsMult / 0.828;
-    const opsPts = Math.min(70, Math.max(0, Math.round((projOps - 0.600) / 0.300 * 70)));
+    const cp = computeProjections(player);
+    if (!cp) return 50;
+    const opsPts = Math.min(70, Math.max(0, Math.round((cp.proj_ops - 0.600) / 0.300 * 70)));
     const agePts = player.age <= 19 ? 10 : player.age === 20 ? 7 : player.age === 21 ? 4 : 0;
     const trendPts = (player.trend && player.trend.startsWith("+") && parseFloat(player.trend) > 0.080) ? 10 : 0;
     const confPts = player.confAdj > 0 ? Math.round(player.confAdj / 100 * 10) : Math.round(Math.min(10, opsPts / 7));
     return Math.min(100, Math.max(0, opsPts + agePts + trendPts + confPts));
   }
   if (player.isPitcher && player.jucoP) {
-    const norm = player.jucoP.era / src.rating;
-    const kAdj = player.jucoP.k9 > 10 ? 0.94 : player.jucoP.k9 > 8 ? 1.00 : 1.08;
-    const projEra = norm * kAdj;
-    const eraPts = Math.min(70, Math.max(0, Math.round((6.0 - projEra) / 4.0 * 70)));
+    const cp = computeProjections(player);
+    if (!cp) return 50;
+    const eraPts = Math.min(70, Math.max(0, Math.round((6.0 - cp.proj_era) / 4.0 * 70)));
     const agePts = player.age <= 19 ? 10 : player.age === 20 ? 7 : player.age === 21 ? 4 : 0;
     const trendPts = (player.trend && (player.trend.startsWith("\u2212") || player.trend.startsWith("-"))) ? 10 : 0;
     const confPts = player.confAdj > 0 ? Math.round(player.confAdj / 100 * 10) : 5;
@@ -152,7 +116,7 @@ function computeGemScore(player) {
 }
 
 function computeRiskScore(player) {
-  const src = CONF_SOURCE[player.conf] || { rating: 0.79 };
+  const srcRating = CONF_SOURCE[player.conf] || 0.79;
   let risk = 20;
   if (!player.isPitcher && player.juco) {
     if ((player.juco.pa || 0) < 150) risk += 15;
@@ -160,7 +124,7 @@ function computeRiskScore(player) {
     else if ((player.juco.kPct || 0) > 18 && (player.juco.iso || 0) < 0.200) risk += 5;
     if (player.age >= 23) risk += 14;
     else if (player.age >= 22) risk += 8;
-    if (src.rating < 0.75) risk += 8;
+    if (srcRating < 0.75) risk += 8;
     if (player.trend && (player.trend.startsWith("-") && !player.trend.startsWith("-0"))) risk += 10;
     const cs = player.juco.cs || 0, sb = player.juco.sb || 0;
     if (sb > 10 && cs / (sb + cs) > 0.30) risk += 4;
@@ -169,20 +133,21 @@ function computeRiskScore(player) {
     if ((player.jucoP.ip || 0) < 40) risk += 15;
     if (player.age >= 23) risk += 14;
     else if (player.age >= 22) risk += 8;
-    if (src.rating < 0.75) risk += 8;
+    if (srcRating < 0.75) risk += 8;
     if (player.trend && player.trend.startsWith("+")) risk += 10;
   }
   return Math.min(72, Math.max(0, risk));
 }
 
-function computeProjections(player, targetConf) {
-  const srcRating = (CONF_SOURCE[player.conf] || {}).rating || 0.82;
+function computeProjections(player) {
+  const srcRating = CONF_SOURCE[player.conf] || 0.82;
 
   if (!player.isPitcher && player.juco) {
-    const ops        = parseFloat(player.juco.ops) || 0;
-    const pa         = player.juco.pa || 0;
+    const pa  = parseFloat(player.juco.pa)  || 0;
+    const ops = parseFloat(player.juco.ops) || 0;
+    if (ops === 0) return null;
     const confidence = Math.min(1.0, pa / 150);
-    const norm       = ops * srcRating;
+    const norm = ops * srcRating;
     let reg;
     if (norm > 0.980)      reg = Math.max(0.62, 0.79 - (norm - 0.980) * 0.22);
     else if (norm > 0.900) reg = 0.88 - (norm - 0.900) * 0.12;
@@ -198,21 +163,22 @@ function computeProjections(player, targetConf) {
   }
 
   if (player.isPitcher && player.jucoP) {
-    const era        = parseFloat(player.jucoP.era) || 0;
-    const ip         = parseFloat(player.jucoP.ip)  || 0;
-    const k9         = parseFloat(player.jucoP.k9)  || 0;
+    const ip  = parseFloat(player.jucoP.ip)  || 0;
+    const era = parseFloat(player.jucoP.era) || 0;
+    const k9  = parseFloat(player.jucoP.k9)  || 0;
+    if (era === 0) return null;
     const confidence = Math.min(1.0, ip / 40);
-    const kAdj       = k9 > 10 ? 0.94 : k9 > 8 ? 1.00 : 1.08;
-    const raw_proj   = (era / srcRating) * kAdj;
-    const proj_era   = Math.round(((raw_proj * confidence) + (4.50 * (1 - confidence))) * 100) / 100;
+    const kAdj     = k9 > 10 ? 0.94 : k9 > 8 ? 1.00 : 1.08;
+    const raw_proj = (era / srcRating) * kAdj;
+    const proj_era = Math.round(((raw_proj * confidence) + (4.50 * (1 - confidence))) * 100) / 100;
     return {
       proj_era,
-      proj_floor_era: Math.round((proj_era + 0.75) * 100) / 100,
-      proj_ceil_era:  Math.round(Math.max(1.80, proj_era - 0.55) * 100) / 100,
+      proj_floor: Math.round((proj_era + 0.75) * 100) / 100,
+      proj_ceil:  Math.round(Math.max(1.80, proj_era - 0.55) * 100) / 100,
     };
   }
 
-  return {};
+  return null;
 }
 
 function parsePlayer(row) {
@@ -381,15 +347,15 @@ function SchoolLogo({dest, size=22}) {
 }
 
 function projectToConf(player, targetConf) {
-  const target = CONF_TARGETS[targetConf];
-  const source = CONF_SOURCE[player.conf] || { rating: 0.85 };
-  const cp     = computeProjections(player, targetConf);
+  const target    = CONF_TARGETS[targetConf];
+  const srcRating = CONF_SOURCE[player.conf] || 0.85;
+  const cp        = computeProjections(player);
 
-  if (!player.isPitcher && player.juco && cp.proj_ops != null) {
+  if (!player.isPitcher && player.juco && cp && cp.proj_ops != null) {
     const scaleFactor = target ? target.opsMult / 0.828 : 1;
     const scaledOps   = Math.round(cp.proj_ops * scaleFactor * 1000) / 1000;
     const projObp     = player.juco.obp != null
-      ? Math.round(player.juco.obp * source.rating * scaleFactor * 1.01 * 1000) / 1000
+      ? Math.round(player.juco.obp * srcRating * scaleFactor * 1.01 * 1000) / 1000
       : null;
     let projSlg = projObp != null ? Math.round((scaledOps - projObp) * 1000) / 1000 : null;
     if (projSlg != null && projSlg < projObp * 0.75) projSlg = Math.round(projObp * 0.85 * 1000) / 1000;
@@ -403,17 +369,17 @@ function projectToConf(player, targetConf) {
     };
   }
 
-  if (player.isPitcher && player.jucoP && cp.proj_era != null) {
+  if (player.isPitcher && player.jucoP && cp && cp.proj_era != null) {
     const k9   = parseFloat(player.jucoP.k9) || 0;
     const kAdj = k9 > 10 ? 0.94 : k9 > 8 ? 1.00 : 1.08;
     return {
       era:   cp.proj_era,
-      whip:  player.jucoP.whip != null ? Math.round(player.jucoP.whip / source.rating * kAdj * 0.96 * 100) / 100 : null,
-      fip:   player.jucoP.fip  != null ? Math.round(player.jucoP.fip  / source.rating * kAdj * 100) / 100 : null,
+      whip:  player.jucoP.whip != null ? Math.round(player.jucoP.whip / srcRating * kAdj * 0.96 * 100) / 100 : null,
+      fip:   player.jucoP.fip  != null ? Math.round(player.jucoP.fip  / srcRating * kAdj * 100) / 100 : null,
       k9:    k9   ? Math.round(k9                  * 0.86 * 100) / 100 : null,
       bb9:   player.jucoP.bb9 ? Math.round(player.jucoP.bb9 * 1.12 * 100) / 100 : null,
-      floor: cp.proj_floor_era,
-      ceil:  cp.proj_ceil_era,
+      floor: cp.proj_floor,
+      ceil:  cp.proj_ceil,
     };
   }
 
@@ -524,7 +490,7 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
       ))}
     </div> : null}
     <div style={{...S.card,padding:"12px 14px"}}>
-      {[["Conf-adj percentile",(p.confAdj||"—")+"th","#f6ad55"],["Source conf strength",(CONF_SOURCE[p.conf]?.rating||0).toFixed(2),"#93c5fd"],["YoY trend",p.trend||"—",p.trend?.startsWith("+")?"#4ade80":"#f87171"]].map(([l,v,c]) => (
+      {[["Conf-adj percentile",(p.confAdj||"—")+"th","#f6ad55"],["Source conf strength",(CONF_SOURCE[p.conf]||0).toFixed(2),"#93c5fd"],["YoY trend",p.trend||"—",p.trend?.startsWith("+")?"#4ade80":"#f87171"]].map(([l,v,c]) => (
         <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#94a3b8",marginBottom:6}}>
           <span>{l}</span><span style={{fontFamily:"'DM Mono',monospace",color:c}}>{v}</span>
         </div>
@@ -536,7 +502,7 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
     <div style={{...S.label}}>Projection → {CONF_TARGETS[targetConf]?.label}</div>
     <div style={{...S.card,marginBottom:14}}>
       {[["1. Raw JUCO stat",mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—","#e2e8f0"],
-        ["2. Source conf ×"+(CONF_SOURCE[p.conf]?.rating||0.85).toFixed(2),isERA?fmt2(mainStat*(1/(CONF_SOURCE[p.conf]?.rating||0.85))):fmt3(mainStat*(CONF_SOURCE[p.conf]?.rating||0.85)),"#94a3b8"],
+        ["2. Source conf ×"+(CONF_SOURCE[p.conf]||0.85).toFixed(2),isERA?fmt2(mainStat*(1/(CONF_SOURCE[p.conf]||0.85))):fmt3(mainStat*(CONF_SOURCE[p.conf]||0.85)),"#94a3b8"],
         ["3. Target conf ×"+(isERA?CONF_TARGETS[targetConf]?.eraMult:CONF_TARGETS[targetConf]?.opsMult)?.toFixed(3),projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—","#93c5fd"]
       ].map(([step,val,col]) => (
         <div key={step} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,.04)"}}>
