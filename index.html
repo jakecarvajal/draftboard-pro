@@ -508,11 +508,11 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
   const statsContent = <div>
     <div style={{...S.label,marginBottom:8}}>Raw {p.year} JUCO Stats</div>
     {!isERA && p.juco ? <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7,marginBottom:14}}>
-      {[["AVG",fmt3(p.juco.avg)],["OBP",fmt3(p.juco.obp)],["SLG",fmt3(p.juco.slg)],["OPS",(p.juco.pa||0)<75?<>{fmt3(p.juco.ops)}<span style={{color:"#f6ad55",fontSize:16,marginLeft:3}}>⚗</span></>:fmt3(p.juco.ops),"#f6ad55"],["ISO",fmt3(p.juco.iso)],["BB%",(p.juco.bbPct!=null?p.juco.bbPct.toFixed(1):"-")+"%"],["K%",(p.juco.kPct!=null?p.juco.kPct.toFixed(1):"-")+"%"],["PA",p.juco.pa],["HR",p.juco.hr],["SB",p.juco.sb],["2B",p.juco.doubles],["3B",p.juco.triples]].map(([l,v,c]) => (
+      {[["AVG",fmt3(p.juco.avg)],["OBP",fmt3(p.juco.obp)],["SLG",fmt3(p.juco.slg)],["OPS",(p.juco.pa||0)<75?<>{fmt3(p.juco.ops)}<span style={{color:"#f6ad55",fontSize:22,marginLeft:4}}>⚗</span></>:fmt3(p.juco.ops),"#f6ad55"],["ISO",fmt3(p.juco.iso)],["BB%",(p.juco.bbPct!=null?p.juco.bbPct.toFixed(1):"-")+"%"],["K%",(p.juco.kPct!=null?p.juco.kPct.toFixed(1):"-")+"%"],["PA",p.juco.pa],["HR",p.juco.hr],["SB",p.juco.sb],["2B",p.juco.doubles],["3B",p.juco.triples]].map(([l,v,c]) => (
         <div key={l} style={{...S.card,padding:"8px 10px"}}><div style={{fontSize:9,color:"#4a5568",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:500,color:c||"#a5b4fc",marginTop:2}}>{v??'—'}</div></div>
       ))}
     </div> : p.jucoP ? <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7,marginBottom:14}}>
-      {[["ERA",(p.jucoP.ip||0)<20?<>{fmt2(p.jucoP.era)}<span style={{color:"#f6ad55",fontSize:16,marginLeft:3}}>⚗</span></>:fmt2(p.jucoP.era),"#f6ad55"],["WHIP",fmt2(p.jucoP.whip)],["FIP",fmt2(p.jucoP.fip)],["K/9",p.jucoP.k9?.toFixed(1)],["BB/9",p.jucoP.bb9?.toFixed(1)],["IP",p.jucoP.ip],["Velo",(p.jucoP.velo||"—")+" mph"],["GS",p.jucoP.gs],["SV",p.jucoP.sv]].map(([l,v,c]) => (
+      {[["ERA",(p.jucoP.ip||0)<20?<>{fmt2(p.jucoP.era)}<span style={{color:"#f6ad55",fontSize:22,marginLeft:4}}>⚗</span></>:fmt2(p.jucoP.era),"#f6ad55"],["WHIP",fmt2(p.jucoP.whip)],["FIP",fmt2(p.jucoP.fip)],["K/9",p.jucoP.k9?.toFixed(1)],["BB/9",p.jucoP.bb9?.toFixed(1)],["IP",p.jucoP.ip],["Velo",(p.jucoP.velo||"—")+" mph"],["GS",p.jucoP.gs],["SV",p.jucoP.sv]].map(([l,v,c]) => (
         <div key={l} style={{...S.card,padding:"8px 10px"}}><div style={{fontSize:9,color:"#4a5568",textTransform:"uppercase"}}>{l}</div><div style={{fontFamily:"'DM Mono',monospace",fontSize:15,fontWeight:500,color:c||"#a5b4fc",marginTop:2}}>{v??'—'}</div></div>
       ))}
     </div> : null}
@@ -1024,7 +1024,7 @@ function App() {
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:4}}>
                               <div style={{display:"flex",alignItems:"center",gap:4,minWidth:0,overflow:"hidden"}}>
                                 <span style={{fontSize:13,fontWeight:500,color:"#e2e8f0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</span>
-                                {(isERA?(p.jucoP?.ip||0)<20:(p.juco?.pa||0)<75)&&<span style={{color:"#f6ad55",fontSize:14,marginLeft:4,verticalAlign:"super",lineHeight:0}} title={isERA?"< 20 IP":"< 75 PA"}>⚗</span>}
+                                {(isERA?(p.jucoP?.ip||0)<20:(p.juco?.pa||0)<75)&&<span style={{color:"#f6ad55",fontSize:18,marginLeft:5,verticalAlign:"super",lineHeight:0}} title={isERA?"< 20 IP":"< 75 PA"}>⚗</span>}
                                 {p.flag&&<Badge text={p.flag} type="flag"/>}
                                 <Badge text={p.status} type="status"/>
                               </div>
@@ -1079,7 +1079,7 @@ function App() {
                     <button onClick={e=>{e.stopPropagation();inPipeline(p.id)?removeFromPipeline(p.id):addToPipeline(p.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:inPipeline(p.id)?"#f6ad55":"#2d3748",padding:4}}>★</button>
                   </div>
                   <div style={{display:"flex",gap:12,fontFamily:"'DM Mono',monospace",fontSize:12}}>
-                    <span style={{color:"#94a3b8"}}>{isERA?"WHIP":"OPS"} <span style={{color:"#e2e8f0",fontWeight:500}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span>{(isERA?(p.jucoP?.ip||0)<20:(p.juco?.pa||0)<75)&&<span style={{color:"#f6ad55",fontSize:14,marginLeft:3}} title={isERA?"< 20 IP":"< 75 PA"}>⚗</span>}</span>
+                    <span style={{color:"#94a3b8"}}>{isERA?"WHIP":"OPS"} <span style={{color:"#e2e8f0",fontWeight:500}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span>{(isERA?(p.jucoP?.ip||0)<20:(p.juco?.pa||0)<75)&&<span style={{color:"#f6ad55",fontSize:18,marginLeft:4}} title={isERA?"< 20 IP":"< 75 PA"}>⚗</span>}</span>
                     <span style={{color:"#4a5568"}}>→</span>
                     <span style={{color:"#93c5fd",fontWeight:500}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span>
                     <span style={{color:"#4a5568"}}>Gem <span style={{color:gemColor(p.gemScore),fontWeight:600}}>{p.gemScore}</span></span>
