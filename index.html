@@ -263,9 +263,9 @@ function parsePlayer(row) {
 }
 
 
-// ── Comp pool loaded from SheetDB (sheet=Comps) ───────────────────────────
+// ── Comp pool loaded from Google Sheets gviz (sheet=Comps) ──────────────────
 // COMP_DB is now fetched at runtime — no hardcoded data here.
-// Parse a raw SheetDB comp row into the shape calcSimilarity expects.
+// Parse a raw gviz comp row into the shape calcSimilarity expects.
 function parseComp(row) {
   const num = v => (v === "" || v == null) ? null : Number(v);
   const str = v => (v === "" || v == null) ? null : String(v).trim();
@@ -325,7 +325,7 @@ function calcSimilarity(player, comp) {
 }
 
 function getTopComps(player, comps, n=3) {
-  // comps is the live array fetched from SheetDB (flat, parsed by parseComp)
+  // comps is the live array fetched from gviz (flat, parsed by parseComp)
   const wantType = player.isPitcher ? "pitcher" : "hitter";
   const pool = comps.filter(c => c.type === wantType);
   return pool.map(c => ({ ...c, score: calcSimilarity(player, c) })).sort((a,b) => b.score - a.score).slice(0, n);
