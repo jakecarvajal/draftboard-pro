@@ -182,7 +182,7 @@ tr:hover .actions-cell{opacity:1}
         <div class="status-dot" id="conn-dot" style="background:var(--muted)"></div>
         <span class="status-label" id="conn-label">Connecting…</span>
         <button class="btn small" onclick="loadAll()">↺ Refresh</button>
-        <button class="btn primary small" id="add-btn" onclick="openAddModal()">+ Add Player</button>
+        <button class="btn primary small" id="add-btn" disabled title="Write operations require Python admin scripts or direct Google Sheets editing">+ Add Player</button>
       </div>
     </div>
 
@@ -254,7 +254,7 @@ tr:hover .actions-cell{opacity:1}
             <select id="comps-type" onchange="filterComps()"><option value="">Hitters + Pitchers</option><option value="hitter">Hitters</option><option value="pitcher">Pitchers</option></select>
             <select id="comps-level" onchange="filterComps()"><option value="">All Levels</option><option>D1</option><option>MLB</option></select>
             <select id="comps-conf" onchange="filterComps()"><option value="">All Confs</option></select>
-            <button class="btn small" onclick="openAddCompModal()">+ Add Comp</button>
+            <button class="btn small" disabled title="Write operations require Python admin scripts or direct Google Sheets editing">+ Add Comp</button>
           </div>
           <div style="overflow-x:auto">
             <table id="comps-table">
@@ -397,7 +397,7 @@ tr:hover .actions-cell{opacity:1}
             <div style="display:flex;gap:8px">
               <button class="btn small" onclick="selectAllScraped()">Select All</button>
               <button class="btn small" onclick="deselectAllScraped()">Deselect All</button>
-              <button class="btn primary small" onclick="pushScraped()" id="push-scraped-btn">Push Selected to Sheet</button>
+              <button class="btn primary small" disabled title="Write operations require Python admin scripts or direct Google Sheets editing" id="push-scraped-btn">Push Selected to Sheet</button>
             </div>
           </div>
           <p class="push-desc">Review scraped players below. Check the ones you want to add, then push. Projections are computed automatically from JUCO stats + conference rating.</p>
@@ -423,7 +423,7 @@ tr:hover .actions-cell{opacity:1}
             <span>⚾ Scraped Pitchers <span id="scrape-pitcher-count" style="color:var(--muted);font-size:11px"></span></span>
             <div style="display:flex;gap:8px">
               <button class="btn small" onclick="selectAllPitchers()">Select All</button>
-              <button class="btn primary small" onclick="pushPitchers()" id="push-pitchers-btn">Push Selected</button>
+              <button class="btn primary small" disabled title="Write operations require Python admin scripts or direct Google Sheets editing" id="push-pitchers-btn">Push Selected</button>
             </div>
           </div>
           <div style="overflow-x:auto">
@@ -613,7 +613,7 @@ tr:hover .actions-cell{opacity:1}
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-player')">Cancel</button>
-      <button class="btn primary" onclick="savePlayer()">Save Player</button>
+      <button class="btn primary" disabled title="Write operations require Python admin scripts or direct Google Sheets editing">Save Player</button>
     </div>
   </div>
 </div>
@@ -622,7 +622,25 @@ tr:hover .actions-cell{opacity:1}
 <div class="toast" id="toast"></div>
 
 <script>
-const BASE = 'https://sheetdb.io/api/v1/gfe1gq37xjmxy';
+const SHEET_ID    = '1j11FxEEADuAvFy5pJKVsQAfJKPGO6TRTxJT6gHnDRFI';
+const PLAYERS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Players`;
+const COMPS_URL   = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Comps`;
+
+function parseGvizResponse(text) {
+  const start = text.indexOf('{');
+  const end   = text.lastIndexOf('}');
+  const data  = JSON.parse(text.slice(start, end + 1));
+  const cols  = data.table.cols.map(c => c.label);
+  return data.table.rows.map(row => {
+    const obj = {};
+    cols.forEach((col, i) => {
+      const cell = row.c ? row.c[i] : null;
+      obj[col] = (cell && cell.v !== undefined) ? cell.v : null;
+    });
+    return obj;
+  });
+}
+
 let allPlayers = [], allComps = [], filteredPlayers = [], filteredComps = [];
 let currentPage = 1, compsPage = 1;
 const PAGE_SIZE = 40;
@@ -658,34 +676,15 @@ const CONF_SOURCE = {
 };
 let confRatings = JSON.parse(JSON.stringify(CONF_SOURCE));
 
-async function api(path, method='GET', body=null) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
-  try {
-    const opts = {method, headers:{'Content-Type':'application/json'}, signal: controller.signal};
-    if(body) opts.body = JSON.stringify(body);
-    const r = await fetch(BASE + path, opts);
-    clearTimeout(timer);
-    if(!r.ok) {
-      const txt = await r.text().catch(()=>'');
-      throw new Error('HTTP ' + r.status + ': ' + txt.slice(0,120));
-    }
-    return r.json();
-  } catch(e) {
-    clearTimeout(timer);
-    if(e.name === 'AbortError') throw new Error('Timed out — check SheetDB allowed origins includes ' + window.location.origin);
-    throw e;
-  }
-}
-
 async function loadAll() {
   setConn('checking');
   try {
-    const [players, comps] = await Promise.all([
-      api('?sheet=Players&limit=2000'),
-      api('?sheet=Comps&limit=500')
+    const [playersText, compsText] = await Promise.all([
+      fetch(PLAYERS_URL).then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP '+r.status))),
+      fetch(COMPS_URL).then(r => r.ok ? r.text() : '')
     ]);
-    allPlayers = players; allComps = comps;
+    allPlayers = parseGvizResponse(playersText);
+    allComps   = compsText ? parseGvizResponse(compsText) : [];
     setConn('ok');
     updateStats();
     populateFilters();
@@ -696,8 +695,7 @@ async function loadAll() {
   } catch(e) {
     setConn('error');
     const msg = e.message || 'Unknown error';
-    toast('SheetDB error: ' + msg, 'error');
-    // Show error in the stats bar so it's visible
+    toast('Google Sheets error: ' + msg, 'error');
     document.getElementById('stat-total').textContent = 'ERR';
     document.getElementById('stat-total').title = msg;
     console.error('loadAll failed:', e);
@@ -795,8 +793,8 @@ function renderPlayers() {
       <td><span class="badge ${p.status||''}">${p.status||'—'}</span></td>
       <td>${p.flag?`<span class="badge ${(p.flag||'').toLowerCase()}">${p.flag}</span>`:''}</td>
       <td><div class="actions-cell">
-        <button class="btn small" onclick="editPlayer('${p.id}')">Edit</button>
-        <button class="btn small danger" onclick="deletePlayer('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">Del</button>
+        <button class="btn small" disabled title="Edit directly in Google Sheets">Edit</button>
+        <button class="btn small danger" disabled title="Delete directly in Google Sheets">Del</button>
       </div></td>
     </tr>`;
   }).join('');
@@ -861,7 +859,7 @@ function renderComps() {
       <td style="color:${lvlColor};font-weight:500">${c.level||'—'}</td>
       <td style="max-width:160px">${tags}</td>
       <td><div class="actions-cell">
-        <button class="btn small danger" onclick="deleteComp('${c.id}','${(c.name||'').replace(/'/g,"\\'")}')">Del</button>
+        <button class="btn small danger" disabled title="Delete directly in Google Sheets">Del</button>
       </div></td>
     </tr>`;
   }).join('');
@@ -933,68 +931,11 @@ function editPlayer(id) {
   document.getElementById('modal-player').classList.add('open');
 }
 
-async function savePlayer() {
-  const avg = parseFloat(document.getElementById('f-avg').value)||null;
-  const obp = parseFloat(document.getElementById('f-obp').value)||null;
-  const slg = parseFloat(document.getElementById('f-slg').value)||null;
-  const ops = (obp&&slg) ? Math.round((obp+slg)*1000)/1000 : null;
-  const iso = (slg&&avg) ? Math.round((slg-avg)*1000)/1000 : null;
-  const data = {
-    name: document.getElementById('f-name').value,
-    pos: document.getElementById('f-pos').value,
-    school: document.getElementById('f-school').value,
-    conf: document.getElementById('f-conf').value,
-    year: document.getElementById('f-year').value,
-    hometown: document.getElementById('f-hometown').value,
-    bats: document.getElementById('f-bats').value,
-    throws: document.getElementById('f-throws').value,
-    juco_avg: avg, juco_obp: obp, juco_slg: slg, juco_ops: ops, juco_iso: iso,
-    juco_pa: document.getElementById('f-pa').value||null,
-    juco_hr: document.getElementById('f-hr').value||0,
-    juco_sb: document.getElementById('f-sb').value||0,
-    juco_bbPct: document.getElementById('f-bbpct').value||null,
-    juco_kPct: document.getElementById('f-kpct').value||null,
-    gemScore: document.getElementById('f-gem').value||null,
-    riskScore: document.getElementById('f-risk').value||null,
-    status: document.getElementById('f-status').value,
-    flag: document.getElementById('f-flag').value||null,
-    dest: document.getElementById('f-dest').value||null,
-    notes: document.getElementById('f-notes').value||null,
-    isPitcher: ['SP','RP'].includes(document.getElementById('f-pos').value) ? 'true' : 'false',
-  };
-  if(!data.name) { toast('Name is required','error'); return; }
-  try {
-    if(editingId) {
-      await api(`/id/${editingId}?sheet=Players`, 'PATCH', {data});
-      toast(`Updated ${data.name}`,'success');
-    } else {
-      const maxId = allPlayers.reduce((m,p)=>Math.max(m,parseInt(p.id)||0),0);
-      data.id = maxId + 1;
-      await api('?sheet=Players', 'POST', {data:[data]});
-      toast(`Added ${data.name} (ID ${data.id})`,'success');
-    }
-    closeModal('modal-player');
-    await loadAll();
-  } catch(e) { toast('Save failed: '+e.message,'error'); }
-}
+const WRITE_DISABLED_MSG = 'Write operations require the Python admin scripts — use scraper.py and cleanup_players.py for bulk changes, or update the sheet directly in Google Sheets.';
 
-async function deletePlayer(id, name) {
-  if(!confirm(`Delete ${name}? This cannot be undone.`)) return;
-  try {
-    await api(`/id/${id}?sheet=Players`,'DELETE');
-    toast(`Deleted ${name}`,'success');
-    await loadAll();
-  } catch(e) { toast('Delete failed: '+e.message,'error'); }
-}
-
-async function deleteComp(id, name) {
-  if(!confirm(`Delete comp: ${name}?`)) return;
-  try {
-    await api(`/id/${id}?sheet=Comps`,'DELETE');
-    toast(`Deleted comp ${name}`,'success');
-    await loadAll();
-  } catch(e) { toast('Delete failed: '+e.message,'error'); }
-}
+function savePlayer()  { toast(WRITE_DISABLED_MSG, 'error'); }
+function deletePlayer() { toast(WRITE_DISABLED_MSG, 'error'); }
+function deleteComp()   { toast(WRITE_DISABLED_MSG, 'error'); }
 
 function openAddCompModal() { toast('Comp editing via Push Data panel — upload a full comps CSV.','info'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -1073,58 +1014,8 @@ function parseCSV(text, type) {
   else { compRows = rows; document.getElementById(btnId).disabled = false; }
 }
 
-async function pushPlayers() {
-  if(!playerRows.length) return;
-  const log = 'player-log', prog = 'player-progress';
-  const btn = document.getElementById('push-players-btn');
-  btn.disabled = true;
-  const BATCH = 50;
-  let pushed = 0;
-  addLog(log, `Pushing ${playerRows.length} players in batches of ${BATCH}…`, 'info');
-  for(let i=0;i<playerRows.length;i+=BATCH) {
-    const batch = playerRows.slice(i,i+BATCH);
-    try {
-      await api('?sheet=Players','POST',{data:batch});
-      pushed += batch.length;
-      const pct = Math.round(pushed/playerRows.length*100);
-      document.getElementById(prog).style.width = pct+'%';
-      addLog(log, `✓ Pushed rows ${i+1}–${Math.min(i+BATCH,playerRows.length)} (${pct}%)`, 'ok');
-      await new Promise(r=>setTimeout(r,350));
-    } catch(e) {
-      addLog(log, `✗ Batch ${i/BATCH+1} failed: ${e.message}`, 'err');
-    }
-  }
-  addLog(log, `Done. ${pushed}/${playerRows.length} rows pushed.`, pushed===playerRows.length?'ok':'err');
-  toast(`Pushed ${pushed} players to sheet`,'success');
-  await loadAll();
-}
-
-async function pushComps() {
-  if(!compRows.length) return;
-  if(!confirm(`This will DELETE all ${allComps.length} existing comps and replace them with ${compRows.length} new rows. Continue?`)) return;
-  const log = 'comp-log', prog = 'comp-progress';
-  document.getElementById('push-comps-btn').disabled = true;
-  addLog(log,'Deleting existing comps…','info');
-  try {
-    await api('/all?sheet=Comps','DELETE');
-    addLog(log,'Cleared existing comps','ok');
-  } catch(e) { addLog(log,'Clear failed — continuing with insert: '+e.message,'err'); }
-  const BATCH = 50;
-  let pushed = 0;
-  for(let i=0;i<compRows.length;i+=BATCH) {
-    const batch = compRows.slice(i,i+BATCH);
-    try {
-      await api('?sheet=Comps','POST',{data:batch});
-      pushed += batch.length;
-      document.getElementById(prog).style.width = Math.round(pushed/compRows.length*100)+'%';
-      addLog(log,`✓ ${pushed}/${compRows.length} comps`,'ok');
-      await new Promise(r=>setTimeout(r,350));
-    } catch(e) { addLog(log,`✗ Batch failed: ${e.message}`,'err'); }
-  }
-  addLog(log,`Done. ${pushed} comps in sheet.`,pushed===compRows.length?'ok':'err');
-  toast(`Replaced comps: ${pushed} rows`,'success');
-  await loadAll();
-}
+function pushPlayers() { toast(WRITE_DISABLED_MSG, 'error'); }
+function pushComps()   { toast(WRITE_DISABLED_MSG, 'error'); }
 
 function addLog(id, msg, cls) {
   const el = document.getElementById(id);
@@ -1488,22 +1379,7 @@ async function pushPitchers() {
   await pushScrapedPlayers(selected, 'push-scraped-log');
 }
 
-async function pushScrapedPlayers(players, logId) {
-  const logEl = document.getElementById(logId);
-  logEl.style.display = '';
-  const maxId = allPlayers.reduce((m,p)=>Math.max(m,parseInt(p.id)||0), 0);
-  const rows = players.map((p,i) => ({...p, id: maxId + i + 1}));
-  addLog(logId, `Pushing ${rows.length} players to sheet…`, 'info');
-  try {
-    await api('?sheet=Players', 'POST', {data: rows});
-    addLog(logId, `✓ Pushed ${rows.length} players successfully`, 'ok');
-    toast(`Added ${rows.length} scraped players to sheet`, 'success');
-    await loadAll();
-  } catch(e) {
-    addLog(logId, `✗ Push failed: ${e.message}`, 'err');
-    toast('Push failed: ' + e.message, 'error');
-  }
-}
+function pushScrapedPlayers(players, logId) { toast(WRITE_DISABLED_MSG, 'error'); }
 
 async function scrapePlayerById() {
   const id = document.getElementById('tbc-player-id').value;
@@ -1556,28 +1432,7 @@ function batchSearch() {
   addLog('batch-log',`Generated ${names.length} search URLs`,'ok');
 }
 
-async function quickAddPlayer() {
-  const name = document.getElementById('qa-name').value.trim();
-  if(!name) { toast('Name required','error'); return; }
-  const maxId = allPlayers.reduce((m,p)=>Math.max(m,parseInt(p.id)||0),0);
-  const ops = parseFloat(document.getElementById('qa-ops').value)||null;
-  const pos = document.getElementById('qa-pos').value;
-  const data = {
-    id: maxId+1, name, pos,
-    school: document.getElementById('qa-school').value,
-    conf: document.getElementById('qa-conf').value,
-    year: document.getElementById('qa-year').value,
-    hometown: document.getElementById('qa-hometown').value,
-    juco_ops: ops, isPitcher: ['SP','RP'].includes(pos)?'true':'false',
-    gemScore: document.getElementById('qa-gem').value||null,
-    status: 'available',
-  };
-  try {
-    await api('?sheet=Players','POST',{data:[data]});
-    toast(`Added ${name} (ID ${data.id}) to sheet`,'success');
-    await loadAll();
-  } catch(e) { toast('Push failed: '+e.message,'error'); }
-}
+function quickAddPlayer() { toast(WRITE_DISABLED_MSG, 'error'); }
 
 /* ── Toast ── */
 function toast(msg, type='info') {
@@ -1589,7 +1444,7 @@ function toast(msg, type='info') {
 
 /* ── Init ── */
 // Show connect button instead of auto-connecting
-// This avoids freezing if SheetDB is slow or blocked
+// This avoids freezing if Google Sheets is slow or unavailable
 document.addEventListener('DOMContentLoaded', () => {
   setConn('idle');
   // Try connecting after a short delay so UI renders first
