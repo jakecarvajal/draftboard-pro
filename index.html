@@ -93,9 +93,18 @@ const CONF_SOURCE = {
   "FCSAA":    0.80, "SWJCAC":    0.81,
 };
 
+const CONF_D1_DIFF = {
+  "SEC": 1.38, "ACC": 1.36, "Big 12": 1.34, "Pac-12": 1.32, "Big Ten": 1.30,
+  "AAC": 1.26, "C-USA": 1.18, "MVC": 1.17, "MAC": 1.16, "Sun Belt": 1.15,
+  "Big South": 1.14, "WAC": 1.14, "Southland": 1.12, "A-Sun": 1.10,
+};
+const D1_DIFF_BASELINE = 1.18;
+const D1_TRANSFER_AVG  = 0.730;
+
 function computeGemScore(player) {
-  if (!player.isPitcher && player.juco) {
-    const cp = computeProjections(player);
+  const isPitcher = String(player.isPitcher) === 'true' || player.pos === 'SP' || player.pos === 'RP';
+  if (!isPitcher && (parseFloat(player.juco_ops) || 0) > 0) {
+    const cp = computeProjections(player, null);
     if (!cp) return 50;
     const opsPts = Math.min(70, Math.max(0, Math.round((cp.proj_ops - 0.600) / 0.300 * 70)));
     const agePts = player.age <= 19 ? 10 : player.age === 20 ? 7 : player.age === 21 ? 4 : 0;
@@ -103,8 +112,8 @@ function computeGemScore(player) {
     const confPts = player.confAdj > 0 ? Math.round(player.confAdj / 100 * 10) : Math.round(Math.min(10, opsPts / 7));
     return Math.min(100, Math.max(0, opsPts + agePts + trendPts + confPts));
   }
-  if (player.isPitcher && player.jucoP) {
-    const cp = computeProjections(player);
+  if (isPitcher && (parseFloat(player.jucoP_era) || 0) > 0) {
+    const cp = computeProjections(player, null);
     if (!cp) return 50;
     const eraPts = Math.min(70, Math.max(0, Math.round((6.0 - cp.proj_era) / 4.0 * 70)));
     const agePts = player.age <= 19 ? 10 : player.age === 20 ? 7 : player.age === 21 ? 4 : 0;
@@ -158,33 +167,40 @@ function computeProbs(player) {
   };
 }
 
-function computeProjections(player) {
+function computeProjections(player, targetConf) {
+  const isPitcherFlag = String(player.isPitcher) === 'true' || player.pos === 'SP' || player.pos === 'RP';
   const srcRating = CONF_SOURCE[player.conf] || 0.82;
 
-  if (!player.isPitcher && player.juco) {
-    const pa  = parseFloat(player.juco.pa)  || 0;
-    const ops = parseFloat(player.juco.ops) || 0;
-    if (ops === 0) return null;
+  if (!isPitcherFlag) {
+    const juco_ops = parseFloat(player.juco_ops) || 0;
+    const pa       = parseFloat(player.juco_pa)  || 200;
+    if (juco_ops === 0) return null;
+
+    // OLS regression: norm_d1 = 0.388 + 0.579 * norm (R²=0.51, n=18, MAE=0.069)
+    const norm    = juco_ops * srcRating;
+    const norm_d1 = 0.388 + 0.579 * norm;
+
+    const dest_diff  = CONF_D1_DIFF[targetConf] || D1_DIFF_BASELINE;
+    const proj_ops   = norm_d1 * (D1_DIFF_BASELINE / dest_diff);
     const confidence = Math.min(1.0, pa / 150);
-    const norm = ops * srcRating;
-    let reg;
-    if (norm > 0.980)      reg = Math.max(0.62, 0.79 - (norm - 0.980) * 0.22);
-    else if (norm > 0.900) reg = 0.88 - (norm - 0.900) * 0.12;
-    else if (norm > 0.780) reg = 0.91;
-    else                   reg = 0.94;
-    const raw_proj = norm * reg;
-    const proj_ops = Math.round(((raw_proj * confidence) + (0.780 * (1 - confidence))) * 1000) / 1000;
+    const raw_proj   = proj_ops * confidence + D1_TRANSFER_AVG * (1 - confidence);
+
+    const variance_scale = 1.0 + Math.max(0, norm - 0.900) * 0.50;
+    const pa_scale       = 1.0 + (1 - confidence) * 0.50;
+    const uncertainty    = 0.087 * variance_scale * pa_scale;
+
     return {
-      proj_ops,
-      proj_floor: Math.round((proj_ops - 0.062) * 1000) / 1000,
-      proj_ceil:  Math.round((proj_ops + 0.068) * 1000) / 1000,
+      proj_ops:   Math.round(raw_proj * 1000) / 1000,
+      proj_floor: Math.round(Math.max(0.520, raw_proj - uncertainty * 1.30) * 1000) / 1000,
+      proj_ceil:  Math.round(Math.min(1.200, raw_proj + uncertainty * 0.90) * 1000) / 1000,
+      norm, norm_d1, confidence,
     };
   }
 
-  if (player.isPitcher && player.jucoP) {
-    const ip   = parseFloat(player.jucoP.ip)   || 0;
-    const era  = parseFloat(player.jucoP.era)  || 0;
-    const k9   = parseFloat(player.jucoP.k9)   || 0;
+  if (isPitcherFlag) {
+    const ip   = parseFloat(player.jucoP_ip)   || 0;
+    const era  = parseFloat(player.jucoP_era)  || 0;
+    const k9   = parseFloat(player.jucoP_k9)   || 0;
     const whip = parseFloat(player.jucoP_whip) || 0;
     if (era === 0) return null;
     const confidence    = Math.min(1.0, ip / 40);
@@ -243,7 +259,12 @@ function parsePlayer(row) {
   const dest    = str(row.dest);
   const flag    = str(row.flag);
   const notes   = str(row.notes) || "";
-  const partial = { isPitcher, age, conf, juco, jucoP, trend, confAdj };
+  const partial = {
+    isPitcher, age, conf, juco, jucoP, trend, confAdj,
+    juco_ops: juco?.ops ?? null, juco_pa: juco?.pa ?? null,
+    jucoP_era: jucoP?.era ?? null, jucoP_ip: jucoP?.ip ?? null,
+    jucoP_k9: jucoP?.k9 ?? null, jucoP_whip: jucoP?.whip ?? null,
+  };
   const gemScore  = (rawGem  && rawGem  > 0) ? rawGem  : computeGemScore(partial);
   const riskScore = (rawRisk && rawRisk > 0) ? rawRisk : computeRiskScore(partial);
   let autoFlag = flag;
@@ -256,6 +277,9 @@ function parsePlayer(row) {
     bats: row.bats, throws: row.throws, hometown: row.hometown,
     isPitcher, juco, jucoP,
     jucoP_whip: isPitcher ? num(row.jucoP_whip) : null,
+    juco_ops: juco?.ops ?? null, juco_pa: juco?.pa ?? null,
+    jucoP_era: jucoP?.era ?? null, jucoP_ip: jucoP?.ip ?? null,
+    jucoP_k9: jucoP?.k9 ?? null,
     proj, probs,
     gemScore, riskScore, trend, confAdj, status, dest,
     flag: autoFlag, notes,
@@ -372,37 +396,35 @@ function SchoolLogo({dest, size=22}) {
 }
 
 function projectToConf(player, targetConf) {
-  const target    = CONF_TARGETS[targetConf];
+  const isPitcher = String(player.isPitcher) === 'true' || player.pos === 'SP' || player.pos === 'RP';
   const srcRating = CONF_SOURCE[player.conf] || 0.85;
-  const cp        = computeProjections(player);
+  const cp        = computeProjections(player, targetConf);
 
-  if (!player.isPitcher && player.juco && cp && cp.proj_ops != null) {
-    const scaleFactor = target ? target.opsMult / 0.828 : 1;
-    const scaledOps   = Math.round(cp.proj_ops * scaleFactor * 1000) / 1000;
-    const projObp     = player.juco.obp != null
-      ? Math.round(player.juco.obp * srcRating * scaleFactor * 1.01 * 1000) / 1000
+  if (!isPitcher && cp && cp.proj_ops != null) {
+    const destDiff = CONF_D1_DIFF[targetConf] || D1_DIFF_BASELINE;
+    const projObp  = player.juco?.obp != null
+      ? Math.round(player.juco.obp * srcRating * (D1_DIFF_BASELINE / destDiff) * 1.01 * 1000) / 1000
       : null;
-    let projSlg = projObp != null ? Math.round((scaledOps - projObp) * 1000) / 1000 : null;
-    if (projSlg != null && projSlg < projObp * 0.75) projSlg = Math.round(projObp * 0.85 * 1000) / 1000;
-    const finalOps = projObp != null ? Math.round((projObp + projSlg) * 1000) / 1000 : scaledOps;
+    let projSlg = projObp != null ? Math.round((cp.proj_ops - projObp) * 1000) / 1000 : null;
+    if (projSlg != null && projSlg < (projObp || 0) * 0.75) projSlg = Math.round((projObp || 0) * 0.85 * 1000) / 1000;
     return {
-      ops:   finalOps,
+      ops:   cp.proj_ops,
       obp:   projObp,
       slg:   projSlg,
-      floor: Math.round((finalOps - 0.062) * 1000) / 1000,
-      ceil:  Math.round((finalOps + 0.068) * 1000) / 1000,
+      floor: cp.proj_floor,
+      ceil:  cp.proj_ceil,
     };
   }
 
-  if (player.isPitcher && player.jucoP && cp && cp.proj_era != null) {
-    const k9   = parseFloat(player.jucoP.k9) || 0;
+  if (isPitcher && cp && cp.proj_era != null) {
+    const k9   = parseFloat(player.jucoP_k9) || parseFloat(player.jucoP?.k9) || 0;
     const kAdj = k9 > 10 ? 0.94 : k9 > 8 ? 1.00 : 1.08;
     return {
       era:   cp.proj_era,
       whip:  cp.proj_whip,
-      fip:   player.jucoP.fip  != null ? Math.round(player.jucoP.fip  / srcRating * kAdj * 100) / 100 : null,
+      fip:   player.jucoP?.fip  != null ? Math.round(player.jucoP.fip  / srcRating * kAdj * 100) / 100 : null,
       k9:    k9   ? Math.round(k9                  * 0.86 * 100) / 100 : null,
-      bb9:   player.jucoP.bb9 ? Math.round(player.jucoP.bb9 * 1.12 * 100) / 100 : null,
+      bb9:   player.jucoP?.bb9 ? Math.round(player.jucoP.bb9 * 1.12 * 100) / 100 : null,
       floor: cp.proj_floor,
       ceil:  cp.proj_ceil,
       whip_floor: cp.proj_whip != null ? Math.round((cp.proj_whip + 0.15) * 100) / 100 : null,
