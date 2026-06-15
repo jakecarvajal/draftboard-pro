@@ -857,7 +857,7 @@ function App() {
   const SEED_CONFS = ["ACCAC","NJCAA R14","GCAC","MCCAA","NJCAA R1","CCCAA","NJCAA R6"];
   const TABLE_COLS = [
     {l:"Player",key:null,a:"left",w:220},
-    {l:"JUCO Stat",key:"stat",a:"right",w:80},
+    {l:"Stat",sub:"OPS / WHIP",key:"stat",a:"right",w:88},
     {l:`Proj (${targetConf})`,key:"projStat",a:"right",w:96},
     {l:"Gem",key:"gemScore",a:"right",w:60},
     {l:"Risk",key:"riskScore",a:"right",w:60},
@@ -1022,9 +1022,10 @@ function App() {
             <thead>
               <tr style={{background:"#0f1623",position:"sticky",top:0,zIndex:2}}>
                 {TABLE_COLS.map(h => (
-                  <th key={h.l} scope="col" onClick={() => handleColSort(h.key)}
+                  <th key={h.key??h.l} scope="col" onClick={() => handleColSort(h.key)}
                     style={{padding:"8px 8px 7px",fontSize:10,fontWeight:600,letterSpacing:".08em",color:sortCol===h.key?"#f6ad55":"#4a5568",textTransform:"uppercase",textAlign:h.a,whiteSpace:"nowrap",minWidth:h.w,cursor:h.key?"pointer":"default",userSelect:"none",transition:"color .1s"}}>
                     {h.l}{sortCol===h.key?(sortDir==="desc"?" ↓":" ↑"):""}
+                    {h.sub&&<div style={{fontSize:9,color:"#718096",fontWeight:400,textTransform:"none",letterSpacing:0,marginTop:1}}>{h.sub}</div>}
                   </th>
                 ))}
               </tr>
@@ -1061,8 +1062,8 @@ function App() {
                           </div>
                         </div>
                       </td>
-                      <td style={{padding:"5px 8px",textAlign:"right"}}><span style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:500,color:statColor}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span></td>
-                      <td style={{padding:"5px 8px",textAlign:"right"}}><span style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:500,color:"#93c5fd"}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span></td>
+                      <td style={{padding:"5px 8px",textAlign:"right"}}><span style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:500,color:statColor}}>{mainStat!=null?(isERA?fmt2(mainStat):fmt3(mainStat)):"—"}</span>{mainStat!=null&&<span style={{fontSize:10,color:"#718096",marginLeft:3}}>{isERA?"WHIP":"OPS"}</span>}</td>
+                      <td style={{padding:"5px 8px",textAlign:"right"}}><span style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:500,color:"#93c5fd"}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span>{projStat!=null&&<span style={{fontSize:10,color:"#718096",marginLeft:3}}>{isERA?"WHIP":"OPS"}</span>}</td>
                       <td style={{padding:"5px 8px",textAlign:"right",position:"relative",overflow:"hidden"}}>
                         <div style={{position:"absolute",right:0,top:0,bottom:0,width:`${p.gemScore}%`,background:gemColor(p.gemScore),opacity:0.07,borderRadius:"2px 0 0 2px"}}/>
                         <span style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:600,color:gemColor(p.gemScore),position:"relative"}}>{p.gemScore}</span>
