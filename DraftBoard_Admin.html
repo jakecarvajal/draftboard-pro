@@ -637,17 +637,25 @@ const PLAYERS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?
 const COMPS_URL   = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Comps`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzu13zWKQsYfmfOxixouPm3HBUITaq28Gm4p0sNZmRZS0PhnSiedH_8leMkjmZPdDvu/exec';
 
-async function apiFetch(action, data, sheet) {
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action, sheet, ...data }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  if (json && json.error) throw new Error(json.error);
-  return json;
-}
+const apiFetch = async (action, data, sheet = 'Players') => {
+  const body = JSON.stringify({ action, sheet, ...data });
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body
+    });
+    // no-cors responses are opaque - we can't read status or body, so we treat
+    // "fetch resolved without throwing" as success. Real server-side failures
+    // (bad id, sheet typo, Apps Script exceptions) will NOT surface here -
+    // they'll look identical to success. Verify writes in the Sheet directly
+    // if something seems off.
+    return { status: 'ok' };
+  } catch(e) {
+    throw new Error('Network error: ' + e.message);
+  }
+};
 
 function parseGvizResponse(text) {
   const start = text.indexOf('{');
@@ -993,7 +1001,7 @@ async function savePlayer() {
       toast('Player added', 'success');
     }
     closeModal('modal-player');
-    await loadAll();
+    setTimeout(() => loadAll(), 2000);
   } catch (e) {
     toast('Save failed: ' + e.message, 'error');
   }
@@ -1005,7 +1013,7 @@ async function deletePlayer(id) {
   try {
     await apiFetch('delete', { id }, 'Players');
     toast('Player deleted', 'success');
-    await loadAll();
+    setTimeout(() => loadAll(), 2000);
   } catch (e) {
     toast('Delete failed: ' + e.message, 'error');
   }
@@ -1016,7 +1024,7 @@ async function deleteComp(id) {
   try {
     await apiFetch('delete', { id }, 'Comps');
     toast('Comp deleted', 'success');
-    await loadAll();
+    setTimeout(() => loadAll(), 2000);
   } catch (e) {
     toast('Delete failed: ' + e.message, 'error');
   }
@@ -1119,7 +1127,7 @@ async function pushPlayers() {
   addLog('player-log', `Done. Pushed ${pushed}/${total}${failed ? `, ${failed} failed` : ''}.`, failed ? 'err' : 'ok');
   toast(`Pushed ${pushed} player(s)`, failed ? 'error' : 'success');
   playerRows = [];
-  await loadAll();
+  setTimeout(() => loadAll(), 2000);
 }
 
 async function pushComps() {
@@ -1142,7 +1150,7 @@ async function pushComps() {
   addLog('comp-log', `Done. Pushed ${pushed}/${total}${failed ? `, ${failed} failed` : ''}.`, failed ? 'err' : 'ok');
   toast(`Pushed ${pushed} comp(s)`, failed ? 'error' : 'success');
   compRows = [];
-  await loadAll();
+  setTimeout(() => loadAll(), 2000);
 }
 
 function addLog(id, msg, cls) {
@@ -1526,7 +1534,7 @@ async function pushScrapedPlayers(players, logId) {
   }
   addLog(logId, `Done. Pushed ${pushed}/${players.length}${failed ? `, ${failed} failed` : ''}.`, failed ? 'err' : 'ok');
   toast(`Pushed ${pushed} player(s)`, failed ? 'error' : 'success');
-  if (pushed) await loadAll();
+  if (pushed) setTimeout(() => loadAll(), 2000);
 }
 
 async function scrapePlayerById() {
@@ -1586,7 +1594,7 @@ async function quickAddPlayer(player) {
     const maxId = allPlayers.reduce((m, p) => Math.max(m, parseInt(p.id) || 0), 0);
     await apiFetch('append', { id: maxId + 1, status: 'available', ...player }, 'Players');
     toast(`${player.name} added`, 'success');
-    await loadAll();
+    setTimeout(() => loadAll(), 2000);
   } catch (e) {
     toast('Add failed: ' + e.message, 'error');
   }
