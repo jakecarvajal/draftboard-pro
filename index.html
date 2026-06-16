@@ -203,12 +203,28 @@ function computeProjections(player, targetConf) {
     const k9   = parseFloat(player.jucoP_k9)   || 0;
     const whip = parseFloat(player.jucoP_whip) || 0;
     if (era === 0) return null;
-    const confidence    = Math.min(1.0, ip / 40);
-    const kAdj          = k9 > 10 ? 0.94 : k9 > 8 ? 1.00 : 1.08;
-    const raw_proj      = (era / srcRating) * kAdj;
-    const proj_era      = Math.round(((raw_proj * confidence) + (4.50 * (1 - confidence))) * 100) / 100;
-    const raw_proj_whip = whip / srcRating;
-    const proj_whip     = whip === 0 ? null : Math.round(((raw_proj_whip * confidence) + (1.35 * (1 - confidence))) * 100) / 100;
+
+    const confidence = Math.min(1.0, ip / 40);
+    const kAdj        = k9 > 10 ? 0.94 : k9 > 8 ? 1.00 : 1.08;
+    const raw_proj     = (era / srcRating) * kAdj;
+
+    // OLS fit: D1_era = 1.459 + 0.542 * raw_proj
+    // Fit on n=4 JUCO->D1 pitchers; MAE=0.266 on those 4 (vs 0.543 for the old
+    // raw_proj-as-prediction baseline) - a 51% reduction, but DIRECTIONAL ONLY.
+    // CAVEAT: only 2 of 4 JUCO ERA inputs are confirmed real (Yarbrough, Davenport).
+    // Estrada's (2.08) was never verified against any source, and Tomlin's (~4.50)
+    // is misattributed - it's actually Yarbrough's 2014 D1 sophomore-year ERA, not
+    // Tomlin's JUCO number. No destination-conference effect was detectable (r=0.04
+    // between dest diff and residuals), so targetConf is intentionally not used here.
+    // Re-fit once more real JUCO ERA values are confirmed for additional pitchers.
+    const ERA_OLS_A = 1.459;
+    const ERA_OLS_B = 0.542;
+    const ols_proj  = ERA_OLS_A + ERA_OLS_B * raw_proj;
+
+    const proj_era      = Math.round(((ols_proj * confidence) + (4.50 * (1 - confidence))) * 100) / 100;
+    const raw_proj_whip  = whip / srcRating;
+    const proj_whip      = whip === 0 ? null : Math.round(((raw_proj_whip * confidence) + (1.35 * (1 - confidence))) * 100) / 100;
+
     return {
       proj_era,
       proj_whip,
