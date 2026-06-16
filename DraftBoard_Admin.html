@@ -478,6 +478,16 @@ tr:hover .actions-cell{opacity:1}
     <div class="panel" id="panel-deploy">
       <div class="panel-body">
 
+        <div class="push-section" id="gh-token-section">
+          <div class="push-title">🔑 GitHub Token</div>
+          <p class="push-desc">Enter a GitHub Personal Access Token with repo write access. Held in memory for this browser session only — never saved to disk, never written into this file, never committed.</p>
+          <div style="display:flex;gap:8px">
+            <input type="password" id="gh-token-input" class="form-input" placeholder="github_pat_…" style="flex:1" autocomplete="off">
+            <button class="btn primary small" onclick="setGhToken()">Save for session</button>
+          </div>
+          <div id="gh-token-status" style="font-size:11px;color:var(--muted);margin-top:6px">No token set yet — GitHub actions below will be blocked until you enter one.</div>
+        </div>
+
         <div class="push-section">
           <div class="push-title">🔗 GitHub Connection</div>
           <p class="push-desc">Connected to <strong style="color:var(--gold)">jakecarvajal/draftboard-pro</strong> · branch: <strong style="color:var(--gold)">main</strong> · file: <strong style="color:var(--gold)">index.html</strong></p>
@@ -1605,7 +1615,9 @@ function setConnIdle() {
 }
 
 /* ── GitHub integration ── */
-const GH_TOKEN = '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';
+// Token is never hardcoded — entered by the user each session via the
+// Deploy tab's token prompt and held only in this in-memory variable.
+let ghToken = null;
 const GH_REPO  = 'jakecarvajal/draftboard-pro';
 const GH_FILE  = 'index.html';
 const GH_BRANCH = 'main';
@@ -1615,9 +1627,27 @@ let currentFileSHA = null;
 let currentFileContent = null;
 let deployFileContent = null;
 
+function setGhToken() {
+  const input = document.getElementById('gh-token-input');
+  const val = input.value.trim();
+  if (!val) { toast('Enter a token first', 'error'); return; }
+  ghToken = val;
+  input.value = '';
+  document.getElementById('gh-token-status').textContent = 'Token set for this session ✓';
+  document.getElementById('gh-token-status').style.color = 'var(--green)';
+  toast('GitHub token saved for this session', 'success');
+}
+
+function requireGhToken() {
+  if (ghToken) return true;
+  toast('Enter your GitHub token first (above)', 'error');
+  document.getElementById('gh-token-section').scrollIntoView({behavior:'smooth'});
+  return false;
+}
+
 function ghHeaders() {
   return {
-    'Authorization': `Bearer ${GH_TOKEN}`,
+    'Authorization': `Bearer ${ghToken}`,
     'Accept': 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
     'Content-Type': 'application/json',
@@ -1625,6 +1655,7 @@ function ghHeaders() {
 }
 
 async function githubFetch() {
+  if (!requireGhToken()) return;
   const status = document.getElementById('gh-status');
   const log = 'gh-log';
   status.textContent = 'Fetching…';
@@ -1714,6 +1745,7 @@ function previewDiff() {
 }
 
 async function pushToGitHub() {
+  if (!requireGhToken()) return;
   if(!currentFileSHA) { toast('Fetch the file first','error'); return; }
   const newContent = buildUpdatedContent();
   if(!newContent) return;
@@ -1770,6 +1802,7 @@ function readDeployFileObject(file) {
 }
 
 async function fullDeploy() {
+  if (!requireGhToken()) return;
   if(!deployFileContent) { toast('Load a file first','error'); return; }
   // Need SHA of current file
   if(!currentFileSHA) {
