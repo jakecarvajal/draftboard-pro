@@ -19,10 +19,14 @@ import re
 import time
 
 import requests
+import gspread
+from google.oauth2.service_account import Credentials
 from playwright.sync_api import sync_playwright
 
 SHEETDB_BASE = "https://sheetdb.io/api/v1/gfe1gq37xjmxy"
 TBC_BASE     = "https://www.thebaseballcube.com"
+SHEET_ID     = "1j11FxEEADuAvFy5pJKVsQAfJKPGO6TRTxJT6gHnDRFI"
+SCOPES       = ["https://www.googleapis.com/auth/spreadsheets"]
 
 CONF_RATINGS = {
     "ACCAC":      0.90,
@@ -112,6 +116,22 @@ def parse_int(val, default=0):
         return int(str(val).strip())
     except (ValueError, AttributeError):
         return default
+
+
+# ── Google Sheets helpers ─────────────────────────────────────────────────────
+
+def ensure_tbcid_column():
+    """Add tbcId column to Players sheet header if it doesn't already exist."""
+    creds = Credentials.from_service_account_file("Credentials.json", scopes=SCOPES)
+    gc = gspread.authorize(creds)
+    ws = gc.open_by_key(SHEET_ID).worksheet("Players")
+    headers = ws.row_values(1)
+    if "tbcId" in headers:
+        print(f"  tbcId column already exists at position {headers.index('tbcId') + 1}")
+    else:
+        next_col = len(headers) + 1
+        ws.update_cell(1, next_col, "tbcId")
+        print(f"  Added tbcId column at position {next_col} (column {next_col})")
 
 
 # ── SheetDB I/O ───────────────────────────────────────────────────────────────
@@ -244,7 +264,7 @@ def scrape_school(page, school_id, year, school_name, conf):
             hitters.append({
                 "tbcId":      tbc_id,
                 "name":       name,
-                "pos":        info.get("pos")      or "SS",
+                "pos":        info.get("pos")      or "UTIL",
                 "school":     school_name,
                 "conf":       conf,
                 "year":       year,
@@ -333,6 +353,9 @@ def main():
 
     print(f"Scraping {len(schools_data)} school(s) for {args.year}")
     print(f"Dry run: {args.dry_run}\n")
+
+    print("Ensuring tbcId column exists in Players sheet…")
+    ensure_tbcid_column()
 
     print("Fetching existing players from SheetDB…")
     existing_names, max_id = get_existing_players()

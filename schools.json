@@ -1,0 +1,294 @@
+{
+  "20013": {
+    "conf": "CCCAA",
+    "name": "Fresno City College"
+  },
+  "20025": {
+    "conf": "NJCAA R20",
+    "name": "Eastern New Mexico JC"
+  },
+  "20027": {
+    "conf": "NJCAA R22",
+    "name": "Odessa College"
+  },
+  "20034": {
+    "conf": "ACCAC",
+    "name": "Mesa Community College"
+  },
+  "20035": {
+    "conf": "NJCAA R7",
+    "name": "Crowder College"
+  },
+  "20042": {
+    "conf": "NJCAA R6",
+    "name": "Connors State College"
+  },
+  "20050": {
+    "conf": "CCCAA-S",
+    "name": "Cerritos College"
+  },
+  "20061": {
+    "conf": "NJCAA R14",
+    "name": "Navarro College"
+  },
+  "20062": {
+    "conf": "NJCAA R14",
+    "name": "Hill College"
+  },
+  "20068": {
+    "conf": "NJCAA R14",
+    "name": "McLennan Community College"
+  },
+  "20075": {
+    "conf": "FCSAA",
+    "name": "Palm Beach State College"
+  },
+  "20086": {
+    "conf": "NJCAA R14",
+    "name": "Panola College"
+  },
+  "20110": {
+    "conf": "GCAC",
+    "name": "Chipola College"
+  },
+  "20116": {
+    "conf": "CCCAA-S",
+    "name": "Cypress College"
+  },
+  "20121": {
+    "conf": "CCCAA-S",
+    "name": "El Camino College"
+  },
+  "20127": {
+    "conf": "GCAC",
+    "name": "Gulf Coast State College"
+  },
+  "20148": {
+    "conf": "CCCAA",
+    "name": "Modesto Junior College"
+  },
+  "20156": {
+    "conf": "ACCAC",
+    "name": "Pima Community College"
+  },
+  "20164": {
+    "conf": "NJCAA R6",
+    "name": "Seminole State College OK"
+  },
+  "20182": {
+    "conf": "FCSAA",
+    "name": "Miami Dade College"
+  },
+  "20222": {
+    "conf": "ACCAC",
+    "name": "Central Arizona College"
+  },
+  "20234": {
+    "conf": "NJCAA R14",
+    "name": "San Jacinto College"
+  },
+  "20252": {
+    "conf": "ACCAC",
+    "name": "Yavapai College"
+  },
+  "20285": {
+    "conf": "NJCAA R4",
+    "name": "Motlow State CC"
+  },
+  "20302": {
+    "conf": "CCCAA-S",
+    "name": "Mt San Antonio College"
+  },
+  "20327": {
+    "conf": "NJCAA R5",
+    "name": "Holmes CC"
+  },
+  "20335": {
+    "conf": "NJCAA R1",
+    "name": "Monroe Community College"
+  },
+  "20349": {
+    "conf": "NJCAA R14",
+    "name": "Blinn College"
+  },
+  "20395": {
+    "conf": "NJCAA R5",
+    "name": "Itawamba Community College"
+  },
+  "20515": {
+    "conf": "FCSAA",
+    "name": "Eastern Florida State College"
+  },
+  "20530": {
+    "conf": "FCSAA",
+    "name": "Daytona State College"
+  },
+  "20560": {
+    "conf": "NJCAA R22",
+    "name": "Howard College"
+  },
+  "20561": {
+    "conf": "NJCAA R7",
+    "name": "Hutchinson CC"
+  },
+  "20576": {
+    "conf": "CCCAA-S",
+    "name": "Long Beach City College"
+  },
+  "20668": {
+    "conf": "NJCAA R4",
+    "name": "Walters State CC"
+  },
+  "20689": {
+    "conf": "GCAC",
+    "name": "Northwest Florida State College"
+  },
+  "20691": {
+    "conf": "NJCAA R2",
+    "name": "Allegany College of Maryland"
+  },
+  "20695": {
+    "conf": "NJCAA R14",
+    "name": "Angelina College"
+  },
+  "20704": {
+    "conf": "ACCAC",
+    "name": "Scottsdale CC"
+  },
+  "20709": {
+    "conf": "FCSAA",
+    "name": "Santa Fe College"
+  },
+  "20711": {
+    "conf": "CCCAA",
+    "name": "Diablo Valley College"
+  },
+  "20717": {
+    "conf": "NJCAA R20",
+    "name": "New Mexico Military Institute"
+  },
+  "20728": {
+    "conf": "CCCAA-S",
+    "name": "Glendale Community College"
+  },
+  "20729": {
+    "conf": "GCAC",
+    "name": "Pensacola State College"
+  },
+  "20745": {
+    "conf": "CCCAA",
+    "name": "Santa Rosa Junior College"
+  },
+  "20754": {
+    "conf": "CCCAA-S",
+    "name": "Palomar College"
+  },
+  "20776": {
+    "conf": "NJCAA R1",
+    "name": "Nassau CC"
+  },
+  "20840": {
+    "conf": "NJCAA R24",
+    "name": "Iowa Western CC"
+  },
+  "20852": {
+    "conf": "NJCAA R5",
+    "name": "Mississippi Gulf Coast CC"
+  },
+  "20857": {
+    "conf": "NWAC",
+    "name": "Columbia Basin College"
+  },
+  "20877": {
+    "conf": "ACCAC",
+    "name": "Arizona Western College"
+  },
+  "20885": {
+    "conf": "NJCAA R6",
+    "name": "Eastern Oklahoma State"
+  },
+  "20907": {
+    "conf": "NJCAA R15",
+    "name": "Wabash Valley College"
+  },
+  "20908": {
+    "conf": "ACCAC",
+    "name": "Chandler-Gilbert CC"
+  },
+  "20945": {
+    "conf": "NJCAA R24",
+    "name": "Des Moines Area CC"
+  },
+  "20946": {
+    "conf": "ACCAC",
+    "name": "Eastern Arizona College"
+  },
+  "20967": {
+    "conf": "NJCAA R4",
+    "name": "Volunteer State CC"
+  },
+  "21011": {
+    "conf": "NJCAA R6",
+    "name": "Carl Albert State College"
+  },
+  "21034": {
+    "conf": "NJCAA R24",
+    "name": "Kirkwood Community College"
+  },
+  "21044": {
+    "conf": "NJCAA R22",
+    "name": "Midland College"
+  },
+  "21058": {
+    "conf": "NJCAA R5",
+    "name": "Pearl River CC"
+  },
+  "21073": {
+    "conf": "NJCAA R1",
+    "name": "Suffolk County CC"
+  },
+  "21174": {
+    "conf": "NWAC",
+    "name": "Lower Columbia College"
+  },
+  "21182": {
+    "conf": "NJCAA R7",
+    "name": "Mineral Area College"
+  },
+  "21195": {
+    "conf": "NJCAA R5",
+    "name": "Northwest Mississippi CC"
+  },
+  "21226": {
+    "conf": "NWAC",
+    "name": "Spokane CC"
+  },
+  "21232": {
+    "conf": "NJCAA R14",
+    "name": "Tyler Junior College"
+  },
+  "21248": {
+    "conf": "NWAC",
+    "name": "Yakima Valley College"
+  },
+  "21684": {
+    "conf": "NWAC",
+    "name": "Shoreline Community College"
+  },
+  "21743": {
+    "conf": "NJCAA R7",
+    "name": "Three Rivers College"
+  },
+  "21781": {
+    "conf": "NJCAA R15",
+    "name": "Vincennes University"
+  },
+  "21913": {
+    "conf": "NJCAA R7",
+    "name": "Coffeyville CC"
+  },
+  "22328": {
+    "conf": "NJCAA R22",
+    "name": "Western Texas College"
+  }
+}
