@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DraftBoard Pro</title>
+  <title>JucoBoard</title>
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -500,7 +500,7 @@ function ProbBar({label, value, color="#4ade80"}) {
 
 function LoadingScreen() {
   return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",background:"#070d18",gap:20}}>
-    <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:28,letterSpacing:4,color:"#f6ad55",textTransform:"uppercase"}}>DRAFTBOARD<span style={{color:"#64748b",marginLeft:4}}>PRO</span></div>
+    <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:28,letterSpacing:4,color:"#f6ad55",textTransform:"uppercase"}}>JUCOBOARD</div>
     <div style={{width:32,height:32,border:"3px solid rgba(246,173,85,.2)",borderTop:"3px solid #f6ad55",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
     <p style={{fontSize:13,color:"#64748b",fontFamily:"'Inter',sans-serif"}}>Loading player database...</p>
   </div>;
@@ -508,7 +508,7 @@ function LoadingScreen() {
 
 function ErrorScreen({onRetry}) {
   return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",background:"#070d18",gap:16,padding:32}}>
-    <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:24,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>DRAFTBOARD PRO</div>
+    <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:24,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>JUCOBOARD</div>
     <div style={{background:"rgba(248,113,113,.08)",border:"1px solid rgba(248,113,113,.2)",borderRadius:8,padding:"16px 24px",maxWidth:400,textAlign:"center"}}>
       <p style={{fontSize:14,color:"#f87171",fontWeight:600,marginBottom:8}}>Unable to load player data</p>
       <p style={{fontSize:12,color:"#718096",lineHeight:1.6,marginBottom:16}}>Could not load data from Google Sheets.</p>
@@ -728,7 +728,7 @@ function HelpModal({onClose}) {
     <div style={{background:"#0d1322",border:"1px solid rgba(255,255,255,.1)",borderRadius:12,width:"100%",maxWidth:540,maxHeight:"85vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
       <div style={{padding:"20px 24px 16px",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
-          <h2 style={{fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:18,letterSpacing:2,color:"#f6ad55",margin:0,textTransform:"uppercase"}}>HOW TO READ DRAFTBOARD PRO</h2>
+          <h2 style={{fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:18,letterSpacing:2,color:"#f6ad55",margin:0,textTransform:"uppercase"}}>HOW TO READ JUCOBOARD</h2>
           <p style={{fontSize:12,color:"#64748b",margin:"5px 0 0"}}>Quick reference for coaches.</p>
         </div>
         <button onClick={onClose} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:18,padding:4}}>✕</button>
@@ -951,7 +951,7 @@ function App() {
 
     {!isMobile && <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",height:52,borderBottom:"1px solid rgba(255,255,255,.07)",background:"#060b15",position:"sticky",top:0,zIndex:20,flexShrink:0}}>
       <div style={{display:"flex",alignItems:"center",gap:14}}>
-        <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:18,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>DRAFTBOARD<span style={{color:"#64748b",marginLeft:2}}>PRO</span> <span style={{fontSize:11,color:"#64748b",fontFamily:"'JetBrains Mono',monospace",letterSpacing:1}}>v2.3</span></div>
+        <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:18,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>JUCOBOARD <span style={{fontSize:11,color:"#64748b",fontFamily:"'JetBrains Mono',monospace",letterSpacing:1}}>v2.3</span></div>
         <div style={{width:1,height:20,background:"rgba(255,255,255,.08)"}}/>
         {[["board","Scout Board"],["pipeline",`Pipeline (${Object.keys(pipeline).length})`],["conferences","Conferences"]].map(([v,lbl]) => (
           <button key={v} onClick={() => setView(v)} style={{background:view===v?"rgba(246,173,85,.08)":"none",border:"none",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:13,padding:"6px 10px",borderRadius:4,color:view===v?"#f6ad55":"#718096"}}>{lbl}</button>
@@ -965,7 +965,7 @@ function App() {
     </nav>}
 
     {isMobile && <nav style={{position:"sticky",top:0,zIndex:20,background:"#060b15",borderBottom:"1px solid rgba(255,255,255,.07)",padding:"0 16px",height:44,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-      <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:15,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>DRAFTBOARD<span style={{color:"#64748b",marginLeft:2}}>PRO</span></div>
+      <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:15,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>JUCOBOARD</div>
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#4ade80"}}>● {players.length}</span>
         <button onClick={() => setHelpOpen(true)} style={{background:"none",border:"none",color:"#718096",cursor:"pointer",fontSize:14,padding:4}}>?</button>
