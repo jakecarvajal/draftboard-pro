@@ -11,19 +11,31 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #070d18; }
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: #070d18; }
-    ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 2px; }
+    html, body { background: #06090f; }
+    body {
+      background:
+        radial-gradient(1100px 520px at 50% -160px, rgba(246,173,85,.10), transparent 70%),
+        radial-gradient(900px 480px at 100% 0, rgba(96,131,255,.05), transparent 60%),
+        #06090f;
+      background-attachment: fixed;
+    }
+    ::-webkit-scrollbar { width: 9px; height: 9px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(246,173,85,.2); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(246,173,85,.38); background-clip: padding-box; }
     :focus-visible { outline: 2px solid #f6ad55 !important; outline-offset: 2px; }
     @keyframes slideInRight { from { transform:translateX(100%); } to { transform:translateX(0); } }
-    @keyframes slideInUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+    @keyframes slideInUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
     @keyframes fadeInDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
     @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+    @keyframes track { 0% { left:-40%; } 100% { left:120%; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
     input[type=range] { -webkit-appearance:none; appearance:none; height:4px; border-radius:2px; background:rgba(255,255,255,.1); cursor:pointer; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#f6ad55; cursor:pointer; }
-    select option { background: #1a2235; color: #e2e8f0; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#f6ad55; cursor:pointer; box-shadow:0 0 0 4px rgba(246,173,85,.15), 0 2px 6px rgba(0,0,0,.45); }
+    input[type=range]::-moz-range-thumb { width:16px; height:16px; border:none; border-radius:50%; background:#f6ad55; cursor:pointer; box-shadow:0 0 0 4px rgba(246,173,85,.15); }
+    select option { background: #11192a; color: #e2e8f0; }
+    ::selection { background: rgba(246,173,85,.3); color:#fff; }
   </style>
 </head>
 <body>
@@ -464,12 +476,12 @@ const initials = n => n.split(" ").map(w => w[0]).join("").toUpperCase().slice(0
 const getMainStat = p => p.isPitcher ? (p.jucoP?.whip ?? null) : (p.juco?.ops ?? null);
 
 const S = {
-  card:{background:"rgba(255,255,255,.035)",border:"1px solid rgba(255,255,255,.08)",borderRadius:10,padding:"14px 16px"},
-  label:{fontSize:10,fontWeight:600,letterSpacing:".08em",color:"#64748b",textTransform:"uppercase",marginBottom:6},
+  card:{background:"linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018))",border:"1px solid rgba(255,255,255,.08)",borderRadius:12,padding:"14px 16px",boxShadow:"inset 0 1px 0 rgba(255,255,255,.045)"},
+  label:{fontSize:10,fontWeight:700,letterSpacing:".14em",color:"#7c8aa0",textTransform:"uppercase",marginBottom:8},
   mono:{fontFamily:"'JetBrains Mono',monospace"},
-  divider:{height:1,background:"rgba(255,255,255,.06)",margin:"14px 0"},
-  sel:{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",color:"#e2e8f0",borderRadius:6,padding:"6px 10px",fontFamily:"'Inter',sans-serif",fontSize:13,cursor:"pointer"},
-  sideLabel:{fontSize:10,fontWeight:600,letterSpacing:".08em",color:"#64748b",textTransform:"uppercase",marginBottom:7},
+  divider:{height:1,background:"rgba(255,255,255,.07)",margin:"14px 0"},
+  sel:{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",color:"#e2e8f0",borderRadius:8,padding:"7px 11px",fontFamily:"'Archivo',sans-serif",fontSize:13,cursor:"pointer"},
+  sideLabel:{fontSize:10,fontWeight:700,letterSpacing:".14em",color:"#7c8aa0",textTransform:"uppercase",marginBottom:8},
 };
 
 function useLocalStorage(key, initial) {
@@ -501,20 +513,25 @@ function ProbBar({label, value, color="#4ade80"}) {
 }
 
 function LoadingScreen() {
-  return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",background:"#070d18",gap:20}}>
-    <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:28,letterSpacing:4,color:"#f6ad55",textTransform:"uppercase"}}>JUCOBOARD</div>
-    <div style={{width:32,height:32,border:"3px solid rgba(246,173,85,.2)",borderTop:"3px solid #f6ad55",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-    <p style={{fontSize:13,color:"#64748b",fontFamily:"'Inter',sans-serif"}}>Loading player database...</p>
+  return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:22}}>
+    <div style={{display:"flex",alignItems:"center",gap:14}}>
+      <div style={{width:30,height:30,borderRadius:7,background:"linear-gradient(135deg,#FFD9A0,#F6AD55)",transform:"rotate(45deg)",boxShadow:"0 0 26px rgba(246,173,85,.45)"}}/>
+      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:900,fontSize:32,letterSpacing:1,color:"#f8fafc",textTransform:"uppercase"}}>JUCO<span style={{color:"#f6ad55"}}>BOARD</span></div>
+    </div>
+    <div style={{width:150,height:3,borderRadius:2,background:"rgba(255,255,255,.06)",overflow:"hidden",position:"relative"}}>
+      <div style={{position:"absolute",top:0,bottom:0,width:"40%",background:"linear-gradient(90deg,transparent,#f6ad55,transparent)",animation:"track 1.15s ease-in-out infinite"}}/>
+    </div>
+    <p style={{fontSize:12,color:"#64748b",fontFamily:"'JetBrains Mono',monospace",letterSpacing:".04em"}}>Loading 4,197 player projections…</p>
   </div>;
 }
 
 function ErrorScreen({onRetry}) {
   return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",background:"#070d18",gap:16,padding:32}}>
-    <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:24,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>JUCOBOARD</div>
+    <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:900,fontSize:24,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>JUCOBOARD</div>
     <div style={{background:"rgba(248,113,113,.08)",border:"1px solid rgba(248,113,113,.2)",borderRadius:8,padding:"16px 24px",maxWidth:400,textAlign:"center"}}>
       <p style={{fontSize:14,color:"#f87171",fontWeight:600,marginBottom:8}}>Unable to load player data</p>
       <p style={{fontSize:12,color:"#718096",lineHeight:1.6,marginBottom:16}}>Could not load data from Google Sheets.</p>
-      <button onClick={onRetry} style={{padding:"8px 20px",background:"rgba(246,173,85,.15)",border:"1px solid rgba(246,173,85,.3)",borderRadius:6,cursor:"pointer",color:"#f6ad55",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:500}}>Retry</button>
+      <button onClick={onRetry} style={{padding:"8px 20px",background:"rgba(246,173,85,.15)",border:"1px solid rgba(246,173,85,.3)",borderRadius:6,cursor:"pointer",color:"#f6ad55",fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:500}}>Retry</button>
     </div>
   </div>;
 }
@@ -529,7 +546,7 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
 
   const tabBar = <div style={{display:"flex",borderBottom:"1px solid rgba(255,255,255,.06)",background:asDrawer?"#070d18":"transparent",flexShrink:0}}>
     {["overview","stats","projections","comps","notes"].map(t => (
-      <button key={t} onClick={() => setTab(t)} style={{background:"none",border:"none",borderBottom:tab===t?"2px solid #f6ad55":"2px solid transparent",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500,padding:"7px 12px",color:tab===t?"#f6ad55":"#718096",textTransform:"capitalize"}}>{t}</button>
+      <button key={t} onClick={() => setTab(t)} style={{background:"none",border:"none",borderBottom:tab===t?"2px solid #f6ad55":"2px solid transparent",cursor:"pointer",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,padding:"7px 12px",color:tab===t?"#f6ad55":"#718096",textTransform:"capitalize"}}>{t}</button>
     ))}
   </div>;
 
@@ -548,7 +565,7 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
         <div key={l} style={{...S.card,padding:"8px 12px"}}><div style={{fontSize:10,color:"#64748b"}}>{l}</div><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,color:"#e2e8f0",marginTop:2}}>{v}</div></div>
       ))}
     </div>
-    <button onClick={() => onWatch(p.id)} style={{width:"100%",padding:"9px 0",borderRadius:6,cursor:"pointer",background:watched?"rgba(246,173,85,.15)":"rgba(255,255,255,.04)",border:`1px solid ${watched?"rgba(246,173,85,.4)":"rgba(255,255,255,.08)"}`,color:watched?"#f6ad55":"#64748b",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500}}>
+    <button onClick={() => onWatch(p.id)} style={{width:"100%",padding:"9px 0",borderRadius:6,cursor:"pointer",background:watched?"rgba(246,173,85,.15)":"rgba(255,255,255,.04)",border:`1px solid ${watched?"rgba(246,173,85,.4)":"rgba(255,255,255,.08)"}`,color:watched?"#f6ad55":"#64748b",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500}}>
       {watched ? "★ In Pipeline" : "☆ Add to Pipeline"}
     </button>
   </div>;
@@ -586,16 +603,16 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
         </div>
       ))}
     </div>
-    <div style={{...S.card,padding:"14px 16px",marginBottom:14}}>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:12}}>
-        <span style={{fontFamily:"'JetBrains Mono',monospace",color:"#f87171"}}>{isERA?fmt2(proj.whip_floor):fmt3(proj.floor)} floor</span>
-        <span style={{fontFamily:"'JetBrains Mono',monospace",color:"#93c5fd",fontWeight:600,fontSize:16}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span>
-        <span style={{fontFamily:"'JetBrains Mono',monospace",color:"#4ade80"}}>{isERA?fmt2(proj.whip_ceil):fmt3(proj.ceil)} ceil</span>
+    <div style={{...S.card,padding:"16px 18px",marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:12}}>
+        <div style={{textAlign:"left"}}><div style={{fontSize:9,color:"#64748b",textTransform:"uppercase",letterSpacing:".1em",marginBottom:2}}>Floor</div><span style={{fontFamily:"'JetBrains Mono',monospace",color:"#f87171",fontSize:14,fontWeight:600}}>{isERA?fmt2(proj.whip_floor):fmt3(proj.floor)}</span></div>
+        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:"#93c5fd",textTransform:"uppercase",letterSpacing:".1em",marginBottom:1}}>Projected</div><span style={{fontFamily:"'JetBrains Mono',monospace",color:"#93c5fd",fontWeight:700,fontSize:24,letterSpacing:"-.02em"}}>{projStat!=null?(isERA?fmt2(projStat):fmt3(projStat)):"—"}</span></div>
+        <div style={{textAlign:"right"}}><div style={{fontSize:9,color:"#64748b",textTransform:"uppercase",letterSpacing:".1em",marginBottom:2}}>Ceiling</div><span style={{fontFamily:"'JetBrains Mono',monospace",color:"#4ade80",fontSize:14,fontWeight:600}}>{isERA?fmt2(proj.whip_ceil):fmt3(proj.ceil)}</span></div>
       </div>
-      <div style={{height:8,background:"rgba(255,255,255,.06)",borderRadius:4,position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",left:"10%",width:"80%",height:"100%",background:"rgba(147,197,253,.2)",borderRadius:4}}/>
-        <div style={{position:"absolute",left:"45%",width:3,height:"100%",background:"#93c5fd",borderRadius:2}}/>
+      <div style={{height:8,background:"linear-gradient(90deg,rgba(248,113,113,.28),rgba(147,197,253,.32),rgba(74,222,128,.28))",borderRadius:4,position:"relative"}}>
+        <div style={{position:"absolute",left:"50%",top:"50%",transform:"translate(-50%,-50%)",width:13,height:13,borderRadius:"50%",background:"#93c5fd",boxShadow:"0 0 10px rgba(147,197,253,.85), 0 0 0 3px #0a0f1a"}}/>
       </div>
+      <div style={{fontSize:10,color:"#64748b",marginTop:9,textAlign:"center"}}>80% confidence interval · {CONF_TARGETS[targetConf]?.label}</div>
     </div>
     {(() => { const lp = computeProbs(p); return <>
       <ProbBar label={`P(${isERA?"30+ IP":"100+ PA"}, yr 1)`} value={isERA?(lp.d1IP||0):(lp.d1PA||0)} color="#22c55e"/>
@@ -628,9 +645,11 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
               </div>
               <div style={{fontSize:11,color:"#64748b"}}>{c.jucoSchool} ({c.conf||"—"}) · {c.jucoYear||"—"} · {c.pos}</div>
             </div>
-            <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
-              <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:20,fontWeight:600,color:c.score>=75?"#4ade80":c.score>=55?"#f6ad55":"#94a3b8"}}>{c.score}</div>
-              <div style={{fontSize:9,color:"#64748b",letterSpacing:".08em",textTransform:"uppercase"}}>match</div>
+            <div style={{flexShrink:0,marginLeft:12,width:50,height:50,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:"conic-gradient("+(c.score>=75?"#4ade80":c.score>=55?"#f6ad55":"#94a3b8")+" "+(c.score*3.6)+"deg, rgba(255,255,255,.08) 0deg)"}}>
+              <div style={{width:42,height:42,borderRadius:"50%",background:"#0b1019",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:16,fontWeight:700,lineHeight:1,color:c.score>=75?"#4ade80":c.score>=55?"#f6ad55":"#94a3b8"}}>{c.score}</span>
+                <span style={{fontSize:7,color:"#64748b",letterSpacing:".12em",textTransform:"uppercase",marginTop:2}}>match</span>
+              </div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10}}>
@@ -664,9 +683,9 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
 
   const notesContent = <div>
     <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add scouting observations..."
-      style={{width:"100%",minHeight:80,background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:8,padding:10,color:"#e2e8f0",fontFamily:"'Inter',sans-serif",fontSize:13,resize:"vertical",outline:"none",boxSizing:"border-box",marginBottom:8}}/>
+      style={{width:"100%",minHeight:80,background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:8,padding:10,color:"#e2e8f0",fontFamily:"'Archivo',sans-serif",fontSize:13,resize:"vertical",outline:"none",boxSizing:"border-box",marginBottom:8}}/>
     <button onClick={() => { if (!noteText.trim()) return; onNote(p.id, {text:noteText,timestamp:new Date().toISOString()}); setNoteText(""); }}
-      style={{padding:"8px 20px",background:"rgba(246,173,85,.15)",border:"1px solid rgba(246,173,85,.3)",borderRadius:6,cursor:"pointer",color:"#f6ad55",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:500,marginBottom:16}}>Add Note</button>
+      style={{padding:"8px 20px",background:"rgba(246,173,85,.15)",border:"1px solid rgba(246,173,85,.3)",borderRadius:6,cursor:"pointer",color:"#f6ad55",fontFamily:"'Archivo',sans-serif",fontSize:12,fontWeight:500,marginBottom:16}}>Add Note</button>
     {playerNotes.length === 0 ? <p style={{fontSize:13,color:"#64748b",fontStyle:"italic"}}>No notes yet.</p>
       : playerNotes.slice(0,5).map((n,i) => (
         <div key={i} style={{...S.card,marginBottom:8}}>
@@ -688,7 +707,7 @@ function PlayerDetail({player, targetConf, onClose, watched, onWatch, notes, onN
     <div style={{padding:"20px 24px 0",flexShrink:0}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
         <div>
-          <h2 style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:22,letterSpacing:2,color:"#f6ad55",lineHeight:1,margin:0,textTransform:"uppercase"}}>{p.name.toUpperCase()}</h2>
+          <h2 style={{fontFamily:"'Archivo',sans-serif",fontWeight:900,fontSize:22,letterSpacing:2,color:"#f6ad55",lineHeight:1,margin:0,textTransform:"uppercase"}}>{p.name.toUpperCase()}</h2>
           <p style={{fontSize:12,color:"#718096",margin:"4px 0 0"}}>{p.pos} · {p.bats}/{p.throws} · {p.ht} {p.wt}lb · Age {p.age} · {p.hometown}</p>
         </div>
         <button onClick={onClose} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:20,padding:4,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
@@ -730,7 +749,7 @@ function HelpModal({onClose}) {
     <div style={{background:"#0d1322",border:"1px solid rgba(255,255,255,.1)",borderRadius:12,width:"100%",maxWidth:540,maxHeight:"85vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
       <div style={{padding:"20px 24px 16px",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
-          <h2 style={{fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:18,letterSpacing:2,color:"#f6ad55",margin:0,textTransform:"uppercase"}}>HOW TO READ JUCOBOARD</h2>
+          <h2 style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:18,letterSpacing:2,color:"#f6ad55",margin:0,textTransform:"uppercase"}}>HOW TO READ JUCOBOARD</h2>
           <p style={{fontSize:12,color:"#64748b",margin:"5px 0 0"}}>Quick reference for coaches.</p>
         </div>
         <button onClick={onClose} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:18,padding:4}}>✕</button>
@@ -769,7 +788,7 @@ function LoadMoreButton({visibleCount, totalCount, onLoadMore}) {
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"20px 0 32px",gap:8}}>
       <button onClick={onLoadMore}
-        style={{padding:"10px 32px",background:"rgba(246,173,85,.12)",border:"1px solid rgba(246,173,85,.35)",borderRadius:8,cursor:"pointer",color:"#f6ad55",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,letterSpacing:".04em"}}
+        style={{padding:"10px 32px",background:"rgba(246,173,85,.12)",border:"1px solid rgba(246,173,85,.35)",borderRadius:8,cursor:"pointer",color:"#f6ad55",fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:600,letterSpacing:".04em"}}
         onMouseEnter={e => e.currentTarget.style.background="rgba(246,173,85,.22)"}
         onMouseLeave={e => e.currentTarget.style.background="rgba(246,173,85,.12)"}>
         Load More Players
@@ -919,7 +938,7 @@ function App() {
 
   const MobileFilterSheet = () => mobileFiltersOpen && <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:200}} onClick={() => setMobileFiltersOpen(false)}>
     <div style={{position:"absolute",bottom:0,left:0,right:0,background:"#0d1322",borderRadius:"12px 12px 0 0",padding:"20px 16px",maxHeight:"65vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
-      <div style={{fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:15,letterSpacing:2,color:"#f6ad55",marginBottom:14,textTransform:"uppercase"}}>ADVANCED FILTERS</div>
+      <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:15,letterSpacing:2,color:"#f6ad55",marginBottom:14,textTransform:"uppercase"}}>ADVANCED FILTERS</div>
       <div style={{marginBottom:14}}>
         <div style={{fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Project to Conference</div>
         <select value={targetConf} onChange={e=>setTargetConf(e.target.value)} style={{...S.sel,width:"100%"}}>{Object.entries(CONF_TARGETS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
@@ -939,35 +958,38 @@ function App() {
         <input type="range" min={0} max={100} value={maxRisk} onChange={e=>setMaxRisk(Number(e.target.value))} style={{width:"100%"}}/>
       </div>
       <div style={{display:"flex",justifyContent:"space-between",marginTop:16}}>
-        <button onClick={clearAdvanced} style={{padding:"8px 16px",background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:6,cursor:"pointer",color:"#718096",fontSize:12,fontFamily:"'Inter',sans-serif"}}>Clear all</button>
-        <button onClick={()=>setMobileFiltersOpen(false)} style={{padding:"8px 20px",background:"rgba(246,173,85,.15)",border:"1px solid rgba(246,173,85,.3)",borderRadius:6,cursor:"pointer",color:"#f6ad55",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600}}>Apply</button>
+        <button onClick={clearAdvanced} style={{padding:"8px 16px",background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:6,cursor:"pointer",color:"#718096",fontSize:12,fontFamily:"'Archivo',sans-serif"}}>Clear all</button>
+        <button onClick={()=>setMobileFiltersOpen(false)} style={{padding:"8px 20px",background:"rgba(246,173,85,.15)",border:"1px solid rgba(246,173,85,.3)",borderRadius:6,cursor:"pointer",color:"#f6ad55",fontSize:12,fontFamily:"'Archivo',sans-serif",fontWeight:600}}>Apply</button>
       </div>
     </div>
   </div>;
 
-  if (loadState === "loading") return <><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/><LoadingScreen/></>;
-  if (loadState === "error")   return <><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/><ErrorScreen onRetry={fetchPlayers}/></>;
+  if (loadState === "loading") return <><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/><LoadingScreen/></>;
+  if (loadState === "error")   return <><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/><ErrorScreen onRetry={fetchPlayers}/></>;
 
-  return <div style={{minHeight:"100vh",background:"#070d18",color:"#e2e8f0",fontFamily:"'Inter','Helvetica Neue',sans-serif",display:"flex",flexDirection:"column",paddingBottom:isMobile?"52px":"0"}}>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  return <div style={{minHeight:"100vh",background:"transparent",color:"#e2e8f0",fontFamily:"'Archivo','Helvetica Neue',sans-serif",display:"flex",flexDirection:"column",paddingBottom:isMobile?"52px":"0"}}>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 
-    {!isMobile && <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",height:52,borderBottom:"1px solid rgba(255,255,255,.07)",background:"#060b15",position:"sticky",top:0,zIndex:20,flexShrink:0}}>
+    {!isMobile && <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",height:54,borderBottom:"1px solid rgba(246,173,85,.13)",background:"rgba(8,11,18,.82)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",position:"sticky",top:0,zIndex:20,flexShrink:0}}>
       <div style={{display:"flex",alignItems:"center",gap:14}}>
-        <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:18,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>JUCOBOARD <span style={{fontSize:11,color:"#64748b",fontFamily:"'JetBrains Mono',monospace",letterSpacing:1}}>v2.3</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:9}}>
+          <div style={{width:17,height:17,borderRadius:4,background:"linear-gradient(135deg,#FFD9A0,#F6AD55)",transform:"rotate(45deg)",boxShadow:"0 0 14px rgba(246,173,85,.4)"}}/>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:900,fontSize:18,letterSpacing:1,color:"#f8fafc",textTransform:"uppercase"}}>JUCO<span style={{color:"#f6ad55"}}>BOARD</span> <span style={{fontSize:10,color:"#64748b",fontFamily:"'JetBrains Mono',monospace",letterSpacing:1,fontWeight:500}}>v2.3</span></div>
+        </div>
         <div style={{width:1,height:20,background:"rgba(255,255,255,.08)"}}/>
         {[["board","Scout Board"],["pipeline",`Pipeline (${Object.keys(pipeline).length})`],["conferences","Conferences"]].map(([v,lbl]) => (
-          <button key={v} onClick={() => setView(v)} style={{background:view===v?"rgba(246,173,85,.08)":"none",border:"none",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:13,padding:"6px 10px",borderRadius:4,color:view===v?"#f6ad55":"#718096"}}>{lbl}</button>
+          <button key={v} onClick={() => setView(v)} style={{background:view===v?"rgba(246,173,85,.1)":"none",border:view===v?"1px solid rgba(246,173,85,.28)":"1px solid transparent",cursor:"pointer",fontFamily:"'Archivo',sans-serif",fontSize:13,fontWeight:view===v?600:500,padding:"6px 13px",borderRadius:8,color:view===v?"#f6ad55":"#94a3b8",transition:"all .12s"}}>{lbl}</button>
         ))}
       </div>
       <div style={{display:"flex",alignItems:"center",gap:8}}>
-        <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:"#4ade80"}}>● LIVE · {players.length} players</span>
+        <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:"#4ade80",display:"inline-flex",alignItems:"center",gap:6,padding:"4px 11px",borderRadius:20,background:"rgba(74,222,128,.08)",border:"1px solid rgba(74,222,128,.18)"}}><span style={{width:6,height:6,borderRadius:"50%",background:"#4ade80",boxShadow:"0 0 8px #4ade80"}}/>LIVE · {players.length}</span>
         <button onClick={() => setHelpOpen(true)} style={{background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:"50%",cursor:"pointer",color:"#718096",fontFamily:"'JetBrains Mono',monospace",fontSize:12,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center"}}>?</button>
         <button onClick={() => setCmdOpen(true)} style={{background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:6,cursor:"pointer",color:"#718096",fontFamily:"'JetBrains Mono',monospace",fontSize:11,padding:"4px 10px"}}>⌘K</button>
       </div>
     </nav>}
 
     {isMobile && <nav style={{position:"sticky",top:0,zIndex:20,background:"#060b15",borderBottom:"1px solid rgba(255,255,255,.07)",padding:"0 16px",height:44,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-      <div style={{fontFamily:"'Inter',sans-serif",fontWeight:900,fontSize:15,letterSpacing:3,color:"#f6ad55",textTransform:"uppercase"}}>JUCOBOARD</div>
+      <div style={{display:"flex",alignItems:"center",gap:7}}><div style={{width:14,height:14,borderRadius:3,background:"linear-gradient(135deg,#FFD9A0,#F6AD55)",transform:"rotate(45deg)"}}/><div style={{fontFamily:"'Archivo',sans-serif",fontWeight:900,fontSize:15,letterSpacing:1,color:"#f8fafc",textTransform:"uppercase"}}>JUCO<span style={{color:"#f6ad55"}}>BOARD</span></div></div>
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#4ade80"}}>● {players.length}</span>
         <button onClick={() => setHelpOpen(true)} style={{background:"none",border:"none",color:"#718096",cursor:"pointer",fontSize:14,padding:4}}>?</button>
@@ -983,7 +1005,7 @@ function App() {
             <input type="search" placeholder="Search players…" value={search} onChange={e => setSearch(e.target.value)} style={{...S.sel,width:"100%"}}/>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
               <span style={{fontSize:10,color:"#64748b"}}>{Math.min(visibleCount,filtered.length)} of {filtered.length} shown</span>
-              {advancedFilterCount>0&&<button onClick={clearAdvanced} style={{fontSize:10,color:"#f87171",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"'Inter',sans-serif"}}>Clear {advancedFilterCount} filter{advancedFilterCount>1?"s":""}</button>}
+              {advancedFilterCount>0&&<button onClick={clearAdvanced} style={{fontSize:10,color:"#f87171",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"'Archivo',sans-serif"}}>Clear {advancedFilterCount} filter{advancedFilterCount>1?"s":""}</button>}
             </div>
           </div>
 
@@ -1010,7 +1032,7 @@ function App() {
                     background:flairFilter===value?`${col}18`:"transparent",
                     border:`1px solid ${flairFilter===value?col+"55":"transparent"}`,
                     color:flairFilter===value?col:"#64748b",
-                    fontFamily:"'Inter',sans-serif"}}>{label}</button>
+                    fontFamily:"'Archivo',sans-serif"}}>{label}</button>
               ))}
             </div>
           </div>
@@ -1073,7 +1095,7 @@ function App() {
                 style={{padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0,
                   background:advancedFilterCount>0?"rgba(246,173,85,.12)":"rgba(255,255,255,.05)",
                   border:`1px solid ${advancedFilterCount>0?"rgba(246,173,85,.4)":"rgba(255,255,255,.09)"}`,
-                  color:advancedFilterCount>0?"#f6ad55":"#94a3b8",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>
+                  color:advancedFilterCount>0?"#f6ad55":"#94a3b8",fontFamily:"'Archivo',sans-serif",whiteSpace:"nowrap"}}>
                 {advancedFilterCount>0?`Filters ● ${advancedFilterCount}`:"Filters"}
               </button>
             </div>
@@ -1095,7 +1117,7 @@ function App() {
           {!isMobile && <div style={{overflowY:"auto",flex:1,paddingBottom:selPlayer?"520px":"0",transition:"padding .2s"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
-                <tr style={{background:"#0d1322",position:"sticky",top:0,zIndex:2}}>
+                <tr style={{background:"rgba(11,16,28,.96)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",position:"sticky",top:0,zIndex:2}}>
                   {TABLE_COLS.map(h => (
                     <th key={h.key??h.l} scope="col" onClick={() => handleColSort(h.key)}
                       style={{padding:"10px 10px 9px",fontSize:10,fontWeight:600,letterSpacing:".08em",
@@ -1154,8 +1176,8 @@ function App() {
                           {projStat!=null&&<div style={{fontSize:9,color:"#64748b",marginTop:1}}>{isERA?"WHIP":"OPS"}</div>}
                         </td>
                         <td style={{padding:"8px 10px",textAlign:"right",position:"relative",overflow:"hidden"}}>
-                          <div style={{position:"absolute",right:0,top:0,bottom:0,width:`${p.gemScore}%`,background:gemColor(p.gemScore),opacity:0.06,borderRadius:"2px 0 0 2px"}}/>
-                          <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:15,fontWeight:700,color:gemColor(p.gemScore),position:"relative"}}>{p.gemScore}</span>
+                          
+                          <div style={{display:"inline-flex",flexDirection:"column",alignItems:"flex-end",gap:4}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:17,fontWeight:700,lineHeight:1,color:gemColor(p.gemScore),textShadow:p.gemScore>=80?"0 0 16px rgba(246,173,85,.5)":"none"}}>{p.gemScore}</span><div style={{width:42,height:3,borderRadius:2,background:"rgba(255,255,255,.07)",overflow:"hidden"}}><div style={{width:`${p.gemScore}%`,height:"100%",background:gemColor(p.gemScore),borderRadius:2}}/></div></div>
                         </td>
                         <td style={{padding:"8px 10px",textAlign:"right"}}>
                           <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,fontWeight:500,color:riskColor(p.riskScore)}}>{p.riskScore}</div>
@@ -1188,7 +1210,7 @@ function App() {
                     }}>
                     <div style={{display:"flex"}}>
                       <div style={{width:54,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"12px 6px",borderRight:"1px solid rgba(255,255,255,.06)",background:"rgba(255,255,255,.02)",flexShrink:0}}>
-                        <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:20,fontWeight:700,color:gemColor(p.gemScore),lineHeight:1}}>{p.gemScore}</div>
+                        <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:22,fontWeight:700,color:gemColor(p.gemScore),lineHeight:1,textShadow:p.gemScore>=80?"0 0 14px rgba(246,173,85,.5)":"none"}}>{p.gemScore}</div>
                         <div style={{fontSize:8,color:"#64748b",textTransform:"uppercase",letterSpacing:".06em",marginTop:3}}>gem</div>
                       </div>
                       <div style={{flex:1,padding:"10px 12px",minWidth:0}}>
@@ -1222,7 +1244,7 @@ function App() {
 
       {view === "pipeline" && <div style={{flex:1,overflowX:"auto",overflowY:"auto",padding:"20px 20px"}}>
         <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:20}}>
-          <h1 style={{fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:22,letterSpacing:2,color:"#e2e8f0",margin:0,textTransform:"uppercase"}}>RECRUITING PIPELINE</h1>
+          <h1 style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:22,letterSpacing:2,color:"#e2e8f0",margin:0,textTransform:"uppercase"}}>RECRUITING PIPELINE</h1>
           <span style={{fontSize:12,color:"#64748b"}}>{Object.keys(pipeline).length} players tracked</span>
         </div>
         <div style={{display:"flex",gap:12,minWidth:"max-content",alignItems:"flex-start"}}>
@@ -1232,9 +1254,9 @@ function App() {
               .map(([id,meta]) => ({id:Number(id),meta,player:players.find(p=>p.id===Number(id))}))
               .filter(x => x.player)
               .sort((a,b) => (b.meta.priority||0)-(a.meta.priority||0)||(b.player.gemScore-a.player.gemScore));
-            return <div key={stage.key} style={{minWidth:220,width:220,background:"rgba(255,255,255,.02)",borderRadius:8,padding:12,border:"1px solid rgba(255,255,255,.05)"}}>
+            return <div key={stage.key} style={{minWidth:236,width:236,background:"linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01))",borderRadius:12,padding:12,border:"1px solid rgba(255,255,255,.06)",borderTop:"2px solid "+stage.color+"66"}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                <span style={{fontFamily:"'Inter',sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,color:stage.color,textTransform:"uppercase"}}>{stage.label.toUpperCase()}</span>
+                <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,color:stage.color,textTransform:"uppercase"}}>{stage.label.toUpperCase()}</span>
                 <span style={{fontSize:10,fontWeight:600,padding:"1px 6px",borderRadius:3,background:`${stage.color}22`,color:stage.color}}>{stagePlayers.length}</span>
               </div>
               {stagePlayers.length===0&&<p style={{fontSize:12,color:"#2d3748",fontStyle:"italic",padding:"8px 0"}}>No players</p>}
@@ -1272,10 +1294,10 @@ function App() {
       </div>}
 
       {view === "conferences" && <div style={{padding:"24px 28px",overflowY:"auto",flex:1}}>
-        <h1 style={{fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:22,letterSpacing:2,color:"#e2e8f0",margin:"0 0 4px",textTransform:"uppercase"}}>CONFERENCE TRANSLATION ENGINE</h1>
+        <h1 style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:22,letterSpacing:2,color:"#e2e8f0",margin:"0 0 4px",textTransform:"uppercase"}}>CONFERENCE TRANSLATION ENGINE</h1>
         <p style={{fontSize:12,color:"#64748b",margin:"0 0 24px"}}>Visual tools for understanding JUCO-to-D1 stat translation.</p>
         <div style={{...S.card,marginBottom:24,maxWidth:520}}>
-          <div style={{fontFamily:"'Inter',sans-serif",fontWeight:700,fontSize:12,letterSpacing:2,color:"#f6ad55",marginBottom:14,textTransform:"uppercase"}}>CONFERENCE TRANSLATION CALCULATOR</div>
+          <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:12,letterSpacing:2,color:"#f6ad55",marginBottom:14,textTransform:"uppercase"}}>CONFERENCE TRANSLATION CALCULATOR</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
             <div>
               <div style={{fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:".08em",marginBottom:4}}>Player's JUCO Conference</div>
@@ -1343,7 +1365,7 @@ function App() {
       {selPlayer && <div style={{position:"fixed",bottom:isMobile?52:0,left:0,right:0,height:"min(520px,55vh)",background:"#070d18",borderTop:"2px solid #f6ad55",boxShadow:"0 -8px 32px rgba(0,0,0,.6)",zIndex:50,display:"flex",flexDirection:"column",animation:"slideInUp .2s ease"}}>
         <div style={{padding:"0 16px",height:48,borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",gap:10,flexShrink:0,overflowX:"auto"}}>
           <button onClick={() => setSelected(null)} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:16,padding:"4px 8px",flexShrink:0}}>✕</button>
-          <span style={{fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:14,letterSpacing:2,color:"#f6ad55",flexShrink:0,textTransform:"uppercase"}}>{selPlayer.name.toUpperCase()}</span>
+          <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:800,fontSize:14,letterSpacing:2,color:"#f6ad55",flexShrink:0,textTransform:"uppercase"}}>{selPlayer.name.toUpperCase()}</span>
           <span style={{fontSize:11,color:"#64748b",flexShrink:0}}>{selPlayer.pos} · {selPlayer.conf}</span>
           {selPlayer.dest && <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}><SchoolLogo dest={selPlayer.dest} size={14}/><span style={{fontSize:11,fontWeight:600,color:"#4ade80"}}>→ {selPlayer.dest}</span></div>}
           <div style={{width:1,height:18,background:"rgba(255,255,255,.08)",flexShrink:0}}/>
@@ -1370,7 +1392,7 @@ function App() {
     {isMobile && <nav style={{position:"fixed",bottom:0,left:0,right:0,height:52,background:"#060b15",borderTop:"1px solid rgba(255,255,255,.08)",display:"flex",zIndex:30}}>
       {[["board","📋","Board"],["pipeline","⭐","Pipeline"],["conferences","🏛","Confs"],["help","?","Help"]].map(([v,icon,lbl]) => (
         <button key={v} onClick={() => v==="help"?setHelpOpen(true):setView(v)}
-          style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,color:(view===v&&v!=="help")?"#f6ad55":"#64748b",fontFamily:"'Inter',sans-serif"}}>
+          style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,color:(view===v&&v!=="help")?"#f6ad55":"#64748b",fontFamily:"'Archivo',sans-serif"}}>
           <span style={{fontSize:18,lineHeight:1}}>{icon}</span>
           <span style={{fontSize:9,fontWeight:600,letterSpacing:".04em"}}>{lbl.toUpperCase()}</span>
         </button>
@@ -1384,7 +1406,7 @@ function App() {
       <div style={{background:"#0d1322",border:"1px solid rgba(255,255,255,.1)",borderRadius:12,width:"100%",maxWidth:520,overflow:"hidden"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,.06)"}}>
           <input autoFocus value={cmdQ} onChange={e=>setCmdQ(e.target.value)} placeholder="Search players..." onKeyDown={e=>e.key==="Escape"&&setCmdOpen(false)}
-            style={{flex:1,background:"none",border:"none",color:"#e2e8f0",fontSize:14,fontFamily:"'Inter',sans-serif",outline:"none"}}/>
+            style={{flex:1,background:"none",border:"none",color:"#e2e8f0",fontSize:14,fontFamily:"'Archivo',sans-serif",outline:"none"}}/>
           <kbd style={{fontSize:11,color:"#64748b",border:"1px solid rgba(255,255,255,.1)",borderRadius:4,padding:"2px 6px",fontFamily:"'JetBrains Mono',monospace"}}>ESC</kbd>
         </div>
         {cmdQ.trim()===""
